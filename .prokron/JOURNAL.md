@@ -71,3 +71,12 @@
 - Learned: Main history has one project-owner author identity and a Codex co-author trailer on the substantive v0.1 commit; no external human or vendored code license was found.
 - Left mid-air: No licensing implementation remains; legal ownership cannot be proven from Git metadata alone.
 - Next: Review and publish v0.1.1 without modifying the historical v0.1 artifacts or license grant.
+
+## 2026-09-15 — T-V011-02
+- Task: T-V011-02
+- Owner: codex/primary
+- Did: Added the missing installed-version command, rebuilt wheel and sdist artifacts, and ran clean-room initialization, idempotency, and adoption workflows outside the source checkout.
+- Validation: Ruff, strict mypy, 27 unittests, build, doctor, offline wheel install, sdist install, fresh repository workflow, and three-commit adoption all pass.
+- Learned: Release validation must invoke the installed console script because source tests did not expose the missing --version interface.
+- Left mid-air: Verification is complete; GitHub release publishing is unavailable because the configured gh tokens are invalid.
+- Next: Re-authenticate gh, push the verified commit, and create the v0.1.1 release with both artifacts.

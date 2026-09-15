@@ -69,3 +69,13 @@
 - Acceptance: Version 0.1.1 package metadata, repository documentation, and release artifacts consistently use Apache-2.0 while the v0.1 MIT history remains explicit and unchanged.
 - Evidence: Canonical Apache-2.0 text verified; 0.1.1 wheel metadata reports License-Expression Apache-2.0 and includes LICENSE, NOTICE, and TRADEMARKS.md; Ruff, strict mypy, 26 unittests, package build, and Prokron doctor pass.
 - Governed by: ADR-004
+
+## T-V011-02: Verify the v0.1.1 release artifact
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-V011-01
+- Owner: codex/primary
+- Claimed: 2026-09-15
+- Acceptance: A clean isolated installation from the v0.1.1 artifact reports the correct version and passes fresh init, idempotency, core commands, and existing-project adoption without source-checkout dependencies.
+- Evidence: 27 unittests, Ruff, strict mypy, build, and doctor pass; clean wheel and sdist installations report 0.1.1; fresh init, repeat init, status, next, graph, and three-commit adoption smoke tests pass outside the source checkout.
+- Governed by: ADR-004

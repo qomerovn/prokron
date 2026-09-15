@@ -22,6 +22,11 @@ class ProkronCLITest(unittest.TestCase):
             check=False,
         )
 
+    def test_version_matches_release(self) -> None:
+        result = self.run_cli(PROJECT_ROOT, "--version")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "0.1.1")
+
     def test_init_is_idempotent_and_preserves_bootstrap_file(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             project = Path(temporary)

@@ -4,7 +4,7 @@ Generated from canonical Prokron files; do not edit manually.
 
 ## Current
 - Project: Prokron
-- Tasks: 7
+- Tasks: 8
 - Active intents: 0
 
 ## In flight

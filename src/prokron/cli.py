@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 from .core import eligible_tasks, load_state, validate
@@ -103,6 +104,7 @@ def command_checkpoint(args: argparse.Namespace) -> int:
 
 def parser() -> argparse.ArgumentParser:
     command_parser = argparse.ArgumentParser(prog="prokron", description="Repository-native project continuity.")
+    command_parser.add_argument("--version", action="version", version=version("project-prokron"))
     subcommands = command_parser.add_subparsers(dest="command", required=True)
     for name, handler in {
         "init": command_init,
