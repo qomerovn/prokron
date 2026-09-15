@@ -87,6 +87,8 @@ for command in init work decide checkpoint resume; do
     "$target/commands/prokron-$command.md"
   copy_new "$source_dir/.claude/commands/prokron-$command.md" \
     "$target/.claude/commands/prokron-$command.md"
+  copy_new "$source_dir/.opencode/commands/prokron-$command.md" \
+    "$target/.opencode/commands/prokron-$command.md"
 done
 copy_new "$source_dir/.agents/skills/prokron/SKILL.md" \
   "$target/.agents/skills/prokron/SKILL.md"
@@ -108,3 +110,5 @@ printf 'Prokron installed in %s\n\n' "$target"
 printf 'Start in your agent chat:\n'
 printf '  Codex:       $prokron init %s\n' "$mode"
 printf '  Claude Code: /prokron-init %s\n' "$mode"
+printf '  OpenCode:    /prokron-init %s\n' "$mode"
+printf '  Other:       Read AGENTS.md, then follow commands/prokron-init.md in %s mode.\n' "$mode"

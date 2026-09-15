@@ -107,3 +107,15 @@
 - Affects: T-INSTALL-01
 - Context: Manual copying makes the first Prokron session harder to start than the workflow itself.
 - Decision: Provide one POSIX shell bootstrap that downloads and copies the static chronicle, workflows, and agent adapters into the current repository. It preserves existing chronicle and project instruction files and does not become an application runtime.
+
+## ADR-010: Configure agent hosts instead of model providers
+- Date: 2026-09-16
+- Status: ACCEPTED
+- Authority: product owner request
+- Supersedes: none
+- Amends: ADR-008
+- Corrects: none
+- Rejects: none
+- Affects: T-HOSTS-01
+- Context: GLM, MiniMax, Mistral, Grok, and similar names identify models or providers, while repository instructions and slash commands are loaded by the agent host running them.
+- Decision: Keep Prokron model-neutral. Install `AGENTS.md` and portable command prompts for every agent, and add thin host-native adapters only where a host requires them. Support OpenCode explicitly because it loads `AGENTS.md`, provides project commands, and can run multiple model providers.

@@ -169,3 +169,13 @@
 - Acceptance: One shell command safely installs the Prokron chronicle, workflows, and Codex and Claude adapters into the current repository and tells the developer how to start either entry mode.
 - Evidence: POSIX syntax and local installer checks pass for both modes, all workflows and adapters, repeat installation, preservation, and invalid input. The exact authenticated command published in the README installed successfully from private GitHub `main` into a disposable repository.
 - Governed by: ADR-008, ADR-009
+
+## T-HOSTS-01: Support model-neutral agent hosts
+- Status: WIP
+- Validation: UNTESTED
+- Dependencies: T-INSTALL-01
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: The installer configures OpenCode slash commands and a documented generic path so models such as GLM, MiniMax, Mistral, and Grok can use Prokron through their agent host without provider-specific Prokron logic.
+- Evidence: Pending.
+- Governed by: ADR-008, ADR-010

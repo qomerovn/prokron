@@ -34,27 +34,49 @@ gh api -H 'Accept: application/vnd.github.raw+json' 'repos/qomerovn/prokron/cont
 ```
 
 The private repository requires an authenticated [GitHub CLI](https://cli.github.com/).
-The installer adds the chronicle, workflows, and Codex and Claude adapters. It
-preserves an existing `.prokron/` directory and existing project instructions,
-then prints the agent-chat command that starts the selected mode.
+The installer adds the chronicle, workflows, generic agent instructions, and
+Codex, Claude Code, and OpenCode adapters. It preserves an existing `.prokron/`
+directory and existing project instructions, then prints the agent-chat command
+that starts the selected mode.
+
+## Models and agent hosts
+
+GLM, MiniMax, Mistral, and Grok are models or model providers. Prokron configures
+the **agent host** running the model, so its project memory stays the same when
+the model changes.
+
+- **OpenCode:** the installer adds `.opencode/commands/` and `AGENTS.md`.
+  OpenCode supports multiple providers through `/connect` and `/models`; after
+  selecting any model, run `/prokron-init new` or `/prokron-init existing`.
+- **Any host that loads [`AGENTS.md`](https://agents.md/):** the Prokron rules load with the project.
+  Ask the agent to follow the relevant file in `commands/`.
+- **Any other capable coding agent:** start with: `Read AGENTS.md, then follow
+  commands/prokron-init.md in existing mode.` Change `existing` to `new` when
+  starting from a product specification.
+
+Prokron does not store provider credentials or pin a model. See OpenCode's
+[provider setup](https://opencode.ai/docs/providers),
+[project instructions](https://opencode.ai/docs/rules/), and
+[custom commands](https://opencode.ai/docs/commands/).
 
 ## Start in one of two modes
 
 ### New repository
 
-Run `/prokron-init new` in Claude Code or `$prokron init new` in Codex. The
-agent works with the developer to turn the product specification into the first
-tasks, dependency graph, decisions, and project state.
+Run `/prokron-init new` in Claude Code or OpenCode, or `$prokron init new` in
+Codex. The agent works with the developer to turn the product specification into
+the first tasks, dependency graph, decisions, and project state.
 
 ### Existing repository
 
-Run `/prokron-init existing` in Claude Code or `$prokron init existing` in
-Codex. The chronicle starts empty and records work from that session onward. It
-does not invent historical tasks or decisions from the repository.
+Run `/prokron-init existing` in Claude Code or OpenCode, or `$prokron init
+existing` in Codex. The chronicle starts empty and records work from that
+session onward. It does not invent historical tasks or decisions from the
+repository.
 
 ## Work with the chronicle
 
-| Purpose | Claude Code | Codex |
+| Purpose | Claude Code / OpenCode | Codex |
 |---|---|---|
 | Start the chronicle | `/prokron-init [mode]` | `$prokron init [mode]` |
 | Start or continue one task | `/prokron-work [task]` | `$prokron work [task]` |

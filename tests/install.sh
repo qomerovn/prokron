@@ -16,10 +16,13 @@ test -f "$fixture/.agents/skills/prokron/SKILL.md"
 for command in init work decide checkpoint resume; do
   test -f "$fixture/commands/prokron-$command.md"
   test -f "$fixture/.claude/commands/prokron-$command.md"
+  test -f "$fixture/.opencode/commands/prokron-$command.md"
 done
 grep -Fq '# Keep agent rules' "$fixture/AGENTS.md"
 grep -Fq '# Keep Claude rules' "$fixture/CLAUDE.md"
 grep -Fq '$prokron init existing' "$fixture/output"
+grep -Fq '/prokron-init existing' "$fixture/output"
+grep -Fq 'commands/prokron-init.md in existing mode' "$fixture/output"
 
 printf '\nKEEP\n' >> "$fixture/.prokron/TASKS.md"
 "$root/install.sh" existing "$fixture" >/dev/null

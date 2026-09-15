@@ -140,9 +140,11 @@ The portable workflows are:
 - `/prokron-checkpoint`
 - `/prokron-resume`
 
-Claude Code exposes these as project slash commands. Codex exposes the same
-workflows through `$prokron <mode>` and follows the repository's `AGENTS.md`.
-Other agents can follow the Markdown files in `commands/` directly.
+Claude Code and OpenCode expose these as project slash commands. Codex exposes
+the same workflows through `$prokron <mode>`. Every installation provides
+`AGENTS.md` and the portable Markdown files in `commands/`, which any capable
+agent can follow directly. Adapters select workflows, never model providers;
+provider credentials and model selection remain in the agent host.
 
 ## 7. Invariants
 
