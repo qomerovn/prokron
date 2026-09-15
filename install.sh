@@ -45,13 +45,24 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 if [ -z "$source_dir" ]; then
-  command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 1; }
-  command -v tar >/dev/null 2>&1 || { echo "tar is required" >&2; exit 1; }
   temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/prokron.XXXXXX")
-  curl -fsSL "https://github.com/qomerovn/prokron/archive/refs/heads/main.tar.gz" \
-    -o "$temp_dir/prokron.tar.gz"
-  tar -xzf "$temp_dir/prokron.tar.gz" -C "$temp_dir"
-  source_dir=$temp_dir/prokron-main
+  command -v tar >/dev/null 2>&1 || { echo "tar is required" >&2; exit 1; }
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    gh api repos/qomerovn/prokron/tarball/main > "$temp_dir/prokron.tar.gz"
+  else
+    command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 1; }
+    curl -fsSL "https://github.com/qomerovn/prokron/archive/refs/heads/main.tar.gz" \
+      -o "$temp_dir/prokron.tar.gz"
+  fi
+  mkdir "$temp_dir/source"
+  tar -xzf "$temp_dir/prokron.tar.gz" -C "$temp_dir/source"
+  set -- "$temp_dir/source"/*
+  source_dir=$1
+fi
+
+if [ ! -f "$source_dir/templates/.prokron/README.md" ]; then
+  echo "Downloaded Prokron source is incomplete" >&2
+  exit 1
 fi
 
 copy_new() {

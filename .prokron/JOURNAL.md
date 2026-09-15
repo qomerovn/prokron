@@ -218,3 +218,12 @@
 - Learned: Installation needs one disposable copier; the working product remains the Markdown chronicle and agent instructions.
 - Left mid-air: Nothing.
 - Next: Run the published curl command from a real target repository and begin with the printed agent command.
+
+## 2026-09-16 — published bootstrap check
+- Task: T-INSTALL-01
+- Owner: codex/primary
+- Did: Ran the documented installer from GitHub after publishing it.
+- Validation: Failed before installation because unauthenticated raw GitHub access returns 404 for the private repository.
+- Learned: Delivery must use the authenticated GitHub CLI until the repository is public.
+- Left mid-air: The local installer works; authenticated remote delivery is not yet verified.
+- Next: Fetch the installer and source with `gh`, republish, and rerun the disposable-repository check.

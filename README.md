@@ -27,12 +27,13 @@ Run one of these from the root of the project that will use Prokron:
 
 ```sh
 # New repository
-curl -fsSL https://raw.githubusercontent.com/qomerovn/prokron/main/install.sh | sh -s -- new
+gh api -H 'Accept: application/vnd.github.raw+json' 'repos/qomerovn/prokron/contents/install.sh?ref=main' | sh -s -- new
 
 # Existing repository
-curl -fsSL https://raw.githubusercontent.com/qomerovn/prokron/main/install.sh | sh -s -- existing
+gh api -H 'Accept: application/vnd.github.raw+json' 'repos/qomerovn/prokron/contents/install.sh?ref=main' | sh -s -- existing
 ```
 
+The private repository requires an authenticated [GitHub CLI](https://cli.github.com/).
 The installer adds the chronicle, workflows, and Codex and Claude adapters. It
 preserves an existing `.prokron/` directory and existing project instructions,
 then prints the agent-chat command that starts the selected mode.
