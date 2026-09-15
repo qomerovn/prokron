@@ -83,6 +83,12 @@ Adoption creates empty state instead of reconstructing a plausible history from
 commits. This sacrifices automatic backfilling to avoid turning inference into
 project authority.
 
+## License and trademarks
+
+Prokron source code is distributed under the Apache License 2.0. The Prokron and
+Qomero names and associated logos remain subject to the separate
+[trademark policy](../TRADEMARKS.md).
+
 ## Further reading
 
 - [CLI reference](cli-reference.md)

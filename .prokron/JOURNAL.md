@@ -62,3 +62,12 @@
 - Learned: A short README plus three focused documents keeps the public entry point readable while preserving complete operational detail.
 - Left mid-air: Implementation and documentation are verified; commits and the initial remote push remain.
 - Next: Commit the implementation and documentation, then push main to the Prokron repository.
+
+## 2026-09-15 — T-V011-01
+- Task: T-V011-01
+- Owner: codex/primary
+- Did: Changed the next release to Apache-2.0, added NOTICE and trademark policy, documented the v0.1 MIT history, and audited package metadata and contributors.
+- Validation: Canonical license text and 0.1.1 artifact payloads match; Ruff, strict mypy, 26 unittests, package build, and Prokron doctor pass.
+- Learned: Main history has one project-owner author identity and a Codex co-author trailer on the substantive v0.1 commit; no external human or vendored code license was found.
+- Left mid-air: No licensing implementation remains; legal ownership cannot be proven from Git metadata alone.
+- Next: Review and publish v0.1.1 without modifying the historical v0.1 artifacts or license grant.

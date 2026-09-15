@@ -59,3 +59,13 @@
 - Acceptance: Product identifiers are consistent and GitHub readers can install, use, understand, and verify the project from linked documentation.
 - Evidence: Legacy-name scan is empty; Ruff, strict mypy, 26 unittests, package build, CLI health checks, and documentation link checks pass.
 - Governed by: ADR-001, ADR-003
+
+## T-V011-01: Correct the governing license for the next release
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-V01-06
+- Owner: codex/primary
+- Claimed: 2026-09-15
+- Acceptance: Version 0.1.1 package metadata, repository documentation, and release artifacts consistently use Apache-2.0 while the v0.1 MIT history remains explicit and unchanged.
+- Evidence: Canonical Apache-2.0 text verified; 0.1.1 wheel metadata reports License-Expression Apache-2.0 and includes LICENSE, NOTICE, and TRADEMARKS.md; Ruff, strict mypy, 26 unittests, package build, and Prokron doctor pass.
+- Governed by: ADR-004

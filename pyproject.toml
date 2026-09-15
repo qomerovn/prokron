@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-prokron"
-version = "0.1.0"
+version = "0.1.1"
 description = "Repository-native project continuity for humans and AI"
 readme = "README.md"
 requires-python = ">=3.11"
-license = "MIT"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "TRADEMARKS.md"]
 
 [project.scripts]
 prokron = "prokron.cli:main"

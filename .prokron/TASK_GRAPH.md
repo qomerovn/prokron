@@ -3,7 +3,7 @@
 Generated from `TASKS.md`; do not edit manually.
 
 ## Summary
-- DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06
+- DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06, T-V011-01
 - WIP: none
 - TODO: none
 - BLOCKED: none
@@ -33,5 +33,9 @@ Generated from `TASKS.md`; do not edit manually.
   - eligible: no
 - T-V01-06 [DONE] Publish Prokron identity and project documentation
   - depends on: T-V01-05
+  - unlocks: T-V011-01
+  - eligible: no
+- T-V011-01 [DONE] Correct the governing license for the next release
+  - depends on: T-V01-06
   - unlocks: none
   - eligible: no

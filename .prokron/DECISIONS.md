@@ -35,3 +35,15 @@
 - Affects: T-V01-06
 - Context: The repository, Python package, command, and state directory need one consistent public identity.
 - Decision: Use Prokron, prokron, and .prokron for all product, executable, package, and protocol identifiers.
+
+## ADR-004: Distribute future releases under Apache-2.0
+- Date: 2026-09-15
+- Status: ACCEPTED
+- Authority: product owner
+- Supersedes: none
+- Amends: none
+- Corrects: none
+- Rejects: none
+- Affects: T-V011-01
+- Context: The published v0.1 release used MIT even though Apache-2.0 was intended; that historical grant and its artifacts must remain intact.
+- Decision: Beginning with v0.1.1, distribute Prokron code under Apache-2.0 while keeping Prokron, Qomero, and associated logos subject to a separate trademark policy.

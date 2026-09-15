@@ -1,5 +1,7 @@
 # Prokron
 
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 Repository-native project continuity for humans and AI agents.
 
 Prokron stores tasks, decisions, active intent, and handoff history as readable
@@ -80,3 +82,9 @@ python3 -m venv .venv
 
 Prokron v0.1 deliberately excludes remote services, dashboards, model routing,
 watch mode, code indexing, and project-management integrations.
+
+## License
+
+Prokron source code is distributed under the [Apache License 2.0](LICENSE).
+The Prokron and Qomero names and associated logos are governed separately; see
+the [trademark policy](TRADEMARKS.md).
