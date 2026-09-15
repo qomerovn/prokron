@@ -1,9 +1,9 @@
 # Task Graph
 
-Generated from `TASKS.md`; do not edit manually.
+Kept in sync with `TASKS.md` by the working agent.
 
 ## Summary
-- DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06, T-V011-01, T-V011-02, T-V02-01, T-V02-02, T-V02-03, T-V02-04, T-HARNESS-01, T-HARNESS-02
+- DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06, T-V011-01, T-V011-02, T-V02-01, T-V02-02, T-V02-03, T-V02-04, T-HARNESS-01, T-HARNESS-02, T-WORKFLOW-01
 - WIP: none
 - TODO: none
 - BLOCKED: none
@@ -65,5 +65,9 @@ Generated from `TASKS.md`; do not edit manually.
   - eligible: no
 - T-HARNESS-02 [DONE] Clean up the deterministic adoption implementation
   - depends on: T-HARNESS-01
+  - unlocks: none
+  - eligible: no
+- T-WORKFLOW-01 [DONE] Reduce Prokron to the chronicle workflow
+  - depends on: none
   - unlocks: none
   - eligible: no

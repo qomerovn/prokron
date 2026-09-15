@@ -83,3 +83,15 @@
 - Affects: T-HARNESS-01
 - Context: The deterministic adoption path is proven and the retained semantic engine adds maintenance weight without serving the intended product architecture.
 - Decision: Remove semantic ranking, generated interviews, and legacy import from the product and CLI. Git history remains the recovery path if a concrete compatibility need returns.
+
+## ADR-008: Make Prokron an agent working convention
+- Date: 2026-09-16
+- Status: ACCEPTED
+- Authority: product owner
+- Supersedes: ADR-002, ADR-005, ADR-006
+- Amends: ADR-001
+- Corrects: none
+- Rejects: none
+- Affects: T-WORKFLOW-01
+- Context: Capable agents already understand repositories and can maintain a project chronicle directly. The executable adoption and validation product obscures the useful behavior.
+- Decision: Prokron consists of six Markdown chronicle files, shared agent instructions, and thin host-native command wrappers. New repositories derive their first task graph from a product specification; existing repositories begin with an empty chronicle and accumulate state during normal work. Agents maintain one active intent and checkpoint automatically before session or usage limits.

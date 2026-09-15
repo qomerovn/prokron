@@ -1,3 +1,0 @@
-# Journal
-
-No journal entries.

@@ -191,3 +191,12 @@
 - Learned: The deterministic harness fully replaces the semantic fallback; no source or test callers remain.
 - Left mid-air: Local main is ready to push after explicit approval for the GitHub destination.
 - Next: Push local main to the approved origin.
+
+## 2026-09-15T21:17:27+00:00 — workflow-only rebuild
+- Task: T-WORKFLOW-01
+- Owner: codex/primary
+- Did: Rebuilt Prokron as a six-file project chronicle with two entry modes, five agent workflows, a Codex skill, Claude slash commands, and automatic checkpoint instructions; removed the Python runtime, package, tests, adoption artifacts, and obsolete specifications.
+- Validation: New- and existing-repository template smoke checks, README link checks, Codex skill metadata validation, requirement scans, and Git whitespace checks pass.
+- Learned: The K-Ledger handoff confirms that task dependencies, one live intent, decision lineage, current state, and a concise session diary are sufficient for useful human and agent continuity.
+- Left mid-air: Nothing. The working tree is ready for commit.
+- Next: Use the workflow in a real project and refine only from observed friction.

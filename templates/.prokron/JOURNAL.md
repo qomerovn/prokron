@@ -1,0 +1,3 @@
+# Journal
+
+No sessions recorded.

@@ -139,3 +139,13 @@
 - Acceptance: Remove redundant adoption reads and validation, centralize rendering and confirmation schema, and preserve CLI behavior and integrity checks.
 - Evidence: The full suite, Ruff, strict mypy, doctor, build, and CodeGraph status pass. CodeGraph traced the primary adoption path and verified the index is current. Read paths skip publication-only Markdown round trips.
 - Governed by: ADR-006
+
+## T-WORKFLOW-01: Reduce Prokron to the chronicle workflow
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: none
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: The repository contains the six-file chronicle template, concise agent instructions, and init, work, decide, checkpoint, and resume workflows without an application runtime.
+- Evidence: New- and existing-repository template smoke checks, README link checks, Codex skill metadata validation, requirement scans, and Git whitespace checks pass; the prospective repository contains no application runtime.
+- Governed by: ADR-008

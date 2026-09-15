@@ -1,10 +1,10 @@
 # State
 
-Generated from canonical Prokron files; do not edit manually.
+Maintained with the project chronicle by the working agent.
 
 ## Current
 - Project: Prokron
-- Tasks: 14
+- Tasks: 15
 - Active intents: 0
 
 ## In flight
@@ -20,7 +20,7 @@ Generated from canonical Prokron files; do not edit manually.
 - None
 
 ## Risks / uncertainty
-- Untested active or pending work: none
+- None
 
 ## Next
 - No eligible task.
