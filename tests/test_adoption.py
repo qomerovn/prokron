@@ -368,6 +368,70 @@ class AdoptionClassificationTest(unittest.TestCase):
             self.assertNotIn("docs/nested/README-architecture.md", inspected)
             self.assertLessEqual(inspected.count("bounded text inspection"), 6)
 
+    def test_current_authority_is_scoped_and_open_decisions_are_not_governing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            subprocess.run(["git", "init", "-q"], cwd=project, check=True)
+            files = {
+                "README.md": "# Service\n\nRuns widgets.\n",
+                "docs/domain-model.md": "# Domain model\n\nDefines the service model.\n",
+                "docs/business-rules.md": "# Business rules\n\nWrites are idempotent.\n",
+                "docs/roadmap.md": "# Roadmap\n\nSequence delivery work.\n",
+                "docs/implementation-plan.md": "# Implementation plan\n\nBuild the worker.\n",
+                "docs/open-decisions.md": "# Open decisions\n\nStorage remains unresolved.\n",
+            }
+            for relative, content in files.items():
+                path = project / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+
+            stage_adoption(project)
+            report = (project / ".prokron-adoption" / "ADOPTION_REPORT.md").read_text(encoding="utf-8")
+            authority = report.split("### current authority\n", 1)[1].split("### ", 1)[0]
+
+            self.assertIn("- Status: ESTABLISHED", authority)
+            self.assertIn("architecture / domain model: docs/domain-model.md", authority)
+            self.assertIn("planning / roadmap: docs/roadmap.md", authority)
+            self.assertIn("unresolved decisions surface (non-governing): docs/open-decisions.md", authority)
+            self.assertNotIn("Open Decisions as governing authority", authority)
+
+    def test_authority_interview_targets_only_the_ambiguous_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            subprocess.run(["git", "init", "-q"], cwd=project, check=True)
+            (project / "README.md").write_text("# Service\n\nRuns widgets.\n", encoding="utf-8")
+            docs = project / "docs"
+            docs.mkdir()
+            (docs / "architecture.md").write_text("# Architecture\n\nCurrent service design.\n", encoding="utf-8")
+            (docs / "architecture-v2.md").write_text("# Architecture v2\n\nAlternate service design.\n", encoding="utf-8")
+            (docs / "roadmap.md").write_text("# Roadmap\n\nSequence delivery.\n", encoding="utf-8")
+
+            stage_adoption(project)
+            interview = (project / ".prokron-adoption" / "INTERVIEW.md").read_text(encoding="utf-8")
+            prompts = interview.split("## Structured prompts\n", 1)[1]
+            authority = prompts.split("### current authority\n", 1)[1].split("### ", 1)[0]
+
+            self.assertIn("AMBIGUOUS architecture / domain model", authority)
+            self.assertIn("Resolve authority ownership only for these ambiguous scopes", authority)
+            self.assertNotIn("Which inspected source governs current project truth", authority)
+
+    def test_planning_surface_does_not_establish_tasks_or_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            subprocess.run(["git", "init", "-q"], cwd=project, check=True)
+            (project / "README.md").write_text("# Service\n\nRuns widgets.\n", encoding="utf-8")
+            (project / "roadmap.md").write_text("# Roadmap\n\nShip the worker next.\n", encoding="utf-8")
+            (project / "implementation-plan.md").write_text("# Plan\n\nBuild the worker.\n", encoding="utf-8")
+
+            stage_adoption(project)
+            report = (project / ".prokron-adoption" / "ADOPTION_REPORT.md").read_text(encoding="utf-8")
+            tasks = report.split("### tasks / dependencies\n", 1)[1].split("### ", 1)[0]
+
+            self.assertIn("- Status: NEEDS_CONFIRMATION", tasks)
+            self.assertIn("- Blocking: yes", tasks)
+            self.assertIn("planning surface was inspected", tasks)
+            self.assertEqual(parse_tasks(project / ".prokron-adoption" / "TASKS.md"), ())
+
     def test_git_and_roadmap_compose_high_confidence_without_fabricated_state(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             project = Path(temporary)

@@ -504,7 +504,6 @@ def assess_domains(
     format_issues = format_issues or {}
     definitions = {item.domain: item for item in COVERAGE_SCHEMA}
     selected_paths = {name: (path.relative_to(project).as_posix(),) if path is not None else () for name, path in selected.items()}
-    inspected_paths = tuple(source.path for source in inspected)
     assessments: list[DomainAssessment] = []
     identity = definitions["project identity"]
     assessments.append(
@@ -520,7 +519,29 @@ def assess_domains(
     )
     authority = definitions["current authority"]
     structured_authority_paths = tuple(path for paths in selected_paths.values() for path in paths)
-    authority_paths = tuple(dict.fromkeys((*structured_authority_paths, *inspected_paths)))
+    scope_concepts = (
+        ("architecture / domain model", {"architecture", "domain-model"}),
+        ("normative business rules / invariants", {"business-rules", "constraints", "invariants"}),
+        ("planning / roadmap", {"roadmap"}),
+        ("implementation plan", {"implementation-plan", "current-work"}),
+        ("unresolved decisions surface (non-governing)", {"open-decisions"}),
+    )
+    scoped_sources: dict[str, tuple[str, ...]] = {
+        scope: tuple(source.path for source in inspected if set(source.concepts) & concepts)
+        for scope, concepts in scope_concepts
+    }
+    if purpose_source:
+        scoped_sources = {"product purpose": (purpose_source,), **scoped_sources}
+    scoped_sources = {scope: paths for scope, paths in scoped_sources.items() if paths}
+    ambiguous_scopes = {scope: paths for scope, paths in scoped_sources.items() if len(paths) > 1}
+    governing_scopes = {
+        scope: paths for scope, paths in scoped_sources.items() if not scope.endswith("(non-governing)")
+    }
+    scoped_evidence = tuple(
+        f"{'AMBIGUOUS ' if scope in ambiguous_scopes else ''}{scope}: {', '.join(paths)}"
+        for scope, paths in scoped_sources.items()
+    )
+    authority_paths = structured_authority_paths or scoped_evidence
     if conflicts:
         assessments.append(
             DomainAssessment(
@@ -535,25 +556,32 @@ def assess_domains(
         )
     else:
         structured_authority = bool(tasks or decisions or intents)
+        scoped_authority = bool(governing_scopes) and not ambiguous_scopes
         assessments.append(
             DomainAssessment(
                 authority.domain,
                 authority.requirement,
                 AssessmentStatus.ESTABLISHED
                 if explicit_source and structured_authority
+                else AssessmentStatus.ESTABLISHED
+                if scoped_authority
                 else AssessmentStatus.NEEDS_CONFIRMATION,
                 Confidence.INFERRED_HIGH
                 if explicit_source and structured_authority
+                else Confidence.INFERRED_HIGH
+                if scoped_authority
                 else Confidence.INFERRED_LOW
                 if authority_paths
                 else Confidence.UNKNOWN,
                 authority_paths,
-                not (explicit_source and structured_authority),
+                not (explicit_source and structured_authority or scoped_authority),
                 "--from explicitly selected usable imported state records."
                 if explicit_source and structured_authority
-                else "Inspected candidate sources do not establish which sources govern current truth."
-                if inspected
-                else "Current authority requires confirmation; no usable authority evidence was imported.",
+                else "Inspected evidence establishes a scoped authority map; unresolved-decision surfaces are not governing authority."
+                if scoped_authority
+                else f"Authority ownership is ambiguous only for these scopes: {', '.join(ambiguous_scopes)}."
+                if ambiguous_scopes
+                else "Current scoped authority requires confirmation; no usable authority evidence was imported.",
             )
         )
     architecture = definitions["current architecture / domain model"]
@@ -640,10 +668,15 @@ def assess_domains(
         _structured_assessment(
             definitions["tasks / dependencies"],
             planning_evidence,
-            explicit_source or bool(plan_sources),
-            "Imported tasks or an inspected roadmap/implementation plan establish the current planning surface.",
-            bool(tasks or plan_sources),
-            format_issues.get("TASKS.md", "No task records or current planning source were inspected; remaining work and dependencies require confirmation."),
+            explicit_source,
+            "Imported task records establish current work and dependency edges.",
+            bool(tasks),
+            format_issues.get(
+                "TASKS.md",
+                "A planning surface was inspected, but no concrete current tasks or dependency edges were imported."
+                if plan_sources
+                else "No task records or current planning source were inspected; remaining work and dependencies require confirmation.",
+            ),
         )
     )
     blocker_evidence = task_evidence + ((*selected_paths["INTENTS.md"], *(intent.subject for intent in intents)) if intents else ())
@@ -813,10 +846,13 @@ def generate_interview_prompts(assessments: tuple[DomainAssessment, ...]) -> tup
         elif assessment.domain == "next action":
             question = "State the exact safe next action, or enter `none` when no work is active."
         elif assessment.domain == "current authority":
+            ambiguous = tuple(item for item in assessment.evidence if item.startswith("AMBIGUOUS "))
             question = (
-                f"Does `{assessment.evidence[0]}` govern current project truth? If not, identify the governing source."
+                f"Resolve authority ownership only for these ambiguous scopes: {'; '.join(ambiguous)}."
+                if ambiguous
+                else f"Does `{assessment.evidence[0]}` govern its apparent scope? If not, identify that scope's source."
                 if len(assessment.evidence) == 1
-                else f"Which inspected source governs current project truth: {evidence}?"
+                else f"Confirm the unresolved scope ownership in this authority map: {evidence}."
                 if assessment.evidence
                 else "Question objective: identify the source that governs current project truth and the evidence for its authority."
             )
