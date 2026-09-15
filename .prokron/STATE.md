@@ -5,10 +5,10 @@ Maintained with the project chronicle by the working agent.
 ## Current
 - Project: Prokron
 - Tasks: 17
-- Active intents: 1
+- Active intents: 0
 
 ## In flight
-- T-INSTALL-01: Fix authenticated installation from the private GitHub repository.
+- None
 
 ## Ready
 - None
@@ -17,10 +17,10 @@ Maintained with the project chronicle by the working agent.
 - None
 
 ## Governing decisions
-- ADR-009: The disposable bootstrap installs the static workflow.
+- None
 
 ## Risks / uncertainty
 - None
 
 ## Next
-- Replace the public raw download with authenticated GitHub CLI delivery and rerun the published smoke check.
+- No eligible task.

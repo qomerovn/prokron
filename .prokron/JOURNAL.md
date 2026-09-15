@@ -227,3 +227,12 @@
 - Learned: Delivery must use the authenticated GitHub CLI until the repository is public.
 - Left mid-air: The local installer works; authenticated remote delivery is not yet verified.
 - Next: Fetch the installer and source with `gh`, republish, and rerun the disposable-repository check.
+
+## 2026-09-16 — authenticated bootstrap acceptance
+- Task: T-INSTALL-01
+- Owner: codex/primary
+- Did: Switched private-repository delivery to the authenticated GitHub API for both the installer and source archive, then republished it.
+- Validation: The exact README command installed the chronicle, workflows, Codex skill, and Claude commands from private GitHub `main` into a disposable repository; local syntax, both-mode, preservation, repeat-install, invalid-input, link, legal-file, and whitespace checks pass.
+- Learned: `gh api` provides one command for private repositories without adding credentials or a package runtime.
+- Left mid-air: Nothing.
+- Next: Run the existing-repository command in the target project and start with the printed agent-chat command.

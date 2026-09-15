@@ -3,8 +3,8 @@
 Kept in sync with `TASKS.md` by the working agent.
 
 ## Summary
-- DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06, T-V011-01, T-V011-02, T-V02-01, T-V02-02, T-V02-03, T-V02-04, T-HARNESS-01, T-HARNESS-02, T-WORKFLOW-01, T-DOCS-01
-- WIP: T-INSTALL-01
+- DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06, T-V011-01, T-V011-02, T-V02-01, T-V02-02, T-V02-03, T-V02-04, T-HARNESS-01, T-HARNESS-02, T-WORKFLOW-01, T-DOCS-01, T-INSTALL-01
+- WIP: none
 - TODO: none
 - BLOCKED: none
 - Eligible now: none
@@ -75,7 +75,7 @@ Kept in sync with `TASKS.md` by the working agent.
   - depends on: T-WORKFLOW-01
   - unlocks: T-INSTALL-01
   - eligible: no
-- T-INSTALL-01 [WIP] Add one-command repository setup
+- T-INSTALL-01 [DONE] Add one-command repository setup
   - depends on: T-DOCS-01
   - unlocks: none
   - eligible: no

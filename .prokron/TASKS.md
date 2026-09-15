@@ -161,11 +161,11 @@
 - Governed by: ADR-008
 
 ## T-INSTALL-01: Add one-command repository setup
-- Status: WIP
+- Status: DONE
 - Validation: SYNTHETIC
 - Dependencies: T-DOCS-01
 - Owner: codex/primary
 - Claimed: 2026-09-16
 - Acceptance: One shell command safely installs the Prokron chronicle, workflows, and Codex and Claude adapters into the current repository and tells the developer how to start either entry mode.
-- Evidence: Local syntax and installer smoke checks pass. The first published curl smoke failed because the GitHub repository is private; authenticated delivery remains to be fixed and verified.
+- Evidence: POSIX syntax and local installer checks pass for both modes, all workflows and adapters, repeat installation, preservation, and invalid input. The exact authenticated command published in the README installed successfully from private GitHub `main` into a disposable repository.
 - Governed by: ADR-008, ADR-009
