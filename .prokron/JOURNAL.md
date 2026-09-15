@@ -98,3 +98,12 @@
 - Learned: Human confirmation is useful only when its operational effects enter canonical tasks and intents; optional history can remain explicitly unknown without blocking adoption.
 - Left mid-air: The requested v2 semantic remediation is complete; broader semantic interpretation remains intentionally external to Core.
 - Next: Validate the bounded heuristics and structured interview handoff against real existing repositories.
+
+## 2026-09-16 — T-V02-03
+- Task: T-V02-03
+- Owner: codex/primary
+- Did: Added a guided six-domain adoption interview, persisted resumable answers with human-confirmation provenance, structured JSON question and answer primitives for agents, and canonical materialization of confirmed operational state.
+- Validation: Ruff, strict mypy, 49 unittests, wheel/sdist build, installed-wheel non-interactive and interactive adoption, apply and doctor smoke tests, K-Ledger dogfood, and Git diff check pass.
+- Learned: A generated interview report is useful audit evidence, while stable structured primitives are the safer interface for both humans and agents.
+- Left mid-air: The validated implementation and documentation remain uncommitted as requested.
+- Next: Review the diff and commit only when explicitly approved.

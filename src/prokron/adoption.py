@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import subprocess
 from dataclasses import dataclass, replace
@@ -83,6 +85,8 @@ class AdoptionResult:
     unknowns: tuple[str, ...]
     conflicts: tuple[str, ...]
     incompatibilities: tuple[str, ...]
+    interview_items: tuple[InterviewPrompt, ...] = ()
+    recorded_answers: int = 0
 
 
 @dataclass(frozen=True)
@@ -114,6 +118,14 @@ class InterviewPrompt:
     domain: str
     context: str
     question: str
+    requirement: Requirement = Requirement.REQUIRED
+    status: AssessmentStatus = AssessmentStatus.NEEDS_CONFIRMATION
+    confidence: Confidence = Confidence.UNKNOWN
+    evidence: tuple[str, ...] = ()
+    reason: str = ""
+    objective: str = ""
+    hypothesis: tuple[tuple[str, str], ...] = ()
+    answer_modes: tuple[str, ...] = ()
 
 
 COVERAGE_SCHEMA = (
@@ -254,12 +266,19 @@ def discover(project: Path) -> Discovery:
     paths = _repository_files(project)
     sources = _classified_sources(paths)
     status = _git(project, "status", "--porcelain")
+    changed_files = tuple(
+        sorted(
+            line[3:]
+            for line in status.splitlines()
+            if len(line) > 3 and line[3:].split("/", 1)[0] != ADOPTION_DIR
+        )
+    )
     return Discovery(
         branch=_git(project, "branch", "--show-current") or "detached HEAD",
         head=_git_optional(project, "rev-parse", "--short", "HEAD") or "unborn",
-        dirty=bool(status),
+        dirty=bool(changed_files),
         recent_commit=_git_optional(project, "log", "-1", "--pretty=%s") or None,
-        changed_files=tuple(sorted(line[3:] for line in status.splitlines() if len(line) > 3)),
+        changed_files=changed_files,
         recent_files=tuple(
             line
             for line in (_git_optional(project, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD") or "").splitlines()
@@ -825,7 +844,25 @@ def assess_domains(
     return tuple(assessments)
 
 
-def generate_interview_prompts(assessments: tuple[DomainAssessment, ...]) -> tuple[InterviewPrompt, ...]:
+def generate_interview_prompts(
+    assessments: tuple[DomainAssessment, ...], suggested_next_action: str = ""
+) -> tuple[InterviewPrompt, ...]:
+    objectives = {
+        "active work": "confirm_or_correct_active_work",
+        "tasks / dependencies": "confirm_current_tasks_and_dependencies",
+        "blocked / waiting": "confirm_blocked_or_waiting_state",
+        "validation / evidence": "confirm_validation_level_and_evidence",
+        "current governing decisions": "confirm_additional_governing_decisions",
+        "next action": "confirm_next_safe_action",
+    }
+    answer_modes = {
+        "active work": ("confirm", "edit", "no_active_work", "unresolved"),
+        "tasks / dependencies": ("no_dependencies", "dependencies", "additional_task", "unresolved"),
+        "blocked / waiting": ("no", "yes", "unknown"),
+        "validation / evidence": (*sorted(VALIDATION_LEVELS), "unresolved"),
+        "current governing decisions": ("none", "add", "unresolved"),
+        "next action": ("accept", "edit", "no_active_work", "unresolved"),
+    }
     prompts: list[InterviewPrompt] = []
     for assessment in assessments:
         if not assessment.blocking:
@@ -866,23 +903,281 @@ def generate_interview_prompts(assessments: tuple[DomainAssessment, ...]) -> tup
             question = f"Confirm the current truth for {assessment.domain}, or enter `not applicable`:"
         else:
             question = f"Question objective: establish {assessment.domain} with a concrete current source or explicit confirmation."
-        prompts.append(InterviewPrompt(assessment.domain, context, question))
+        hypothesis: tuple[tuple[str, str], ...] = ()
+        if assessment.domain == "active work":
+            branch = next((item.removeprefix("Git branch: ") for item in assessment.evidence if item.startswith("Git branch: ")), "")
+            match = re.match(r"^(T-[A-Za-z0-9]+-\d+)[-_/](.+)$", branch)
+            recent = next((item.removeprefix("Recent commit: ") for item in assessment.evidence if item.startswith("Recent commit: ")), "")
+            if match:
+                title = match.group(2).replace("-", " ")
+                hypothesis = (
+                    ("task_id", match.group(1)),
+                    ("title", title.upper() if len(title) <= 12 else title.title()),
+                    ("owner", "adoption/interview"),
+                    ("current_point", recent or f"Work on branch {branch}"),
+                )
+        elif assessment.domain == "next action" and suggested_next_action:
+            hypothesis = (("next_action", suggested_next_action),)
+        prompts.append(
+            InterviewPrompt(
+                assessment.domain,
+                context,
+                question,
+                assessment.requirement,
+                assessment.status,
+                assessment.confidence,
+                assessment.evidence,
+                assessment.reason,
+                objectives.get(assessment.domain, f"confirm_{assessment.domain.replace(' / ', '_').replace(' ', '_')}"),
+                hypothesis,
+                answer_modes.get(assessment.domain, ("confirm", "edit", "unresolved")),
+            )
+        )
     return tuple(prompts)
 
 
-def _answer_prompts(prompts: tuple[InterviewPrompt, ...]) -> dict[str, str]:
-    answers: dict[str, str] = {}
-    for prompt in prompts:
-        if prompt.domain == "next action" and answers.get("active work", "").casefold() == "none":
-            answers[prompt.domain] = "none"
-            continue
-        try:
-            answer = input(f"[{prompt.domain}] {prompt.context}\n{prompt.question}\n> ").strip()
-        except EOFError:
-            break
-        if answer:
-            answers[prompt.domain] = answer
-    return answers
+def _ask(label: str) -> str:
+    try:
+        return input(label).strip()
+    except EOFError as error:
+        raise ProkronError("interactive input ended before the interview completed; rerun `prokron adopt --interactive`") from error
+
+
+def _choose(options: tuple[str, ...]) -> int:
+    while True:
+        for index, option in enumerate(options, 1):
+            print(f"  {index}. {option}")
+        value = _ask("> ")
+        if value.isdigit() and 1 <= int(value) <= len(options):
+            return int(value)
+        print(f"Choose 1-{len(options)}.")
+
+
+def _interactive_answer(prompt: InterviewPrompt, known: dict[str, object]) -> object | None:
+    hypothesis = dict(prompt.hypothesis)
+    if hypothesis:
+        print("Evidence suggests:")
+        for key, value in hypothesis.items():
+            print(f"  {key.replace('_', ' ')}: {value}")
+    if prompt.evidence:
+        print("Evidence:")
+        for item in prompt.evidence:
+            print(f"  - {item}")
+
+    if prompt.domain == "active work":
+        options = ("Yes", "Edit", "No active work", "Leave unresolved") if hypothesis else (
+            "Enter active work",
+            "No active work",
+            "Leave unresolved",
+        )
+        choice = _choose(options)
+        if hypothesis and choice == 1:
+            return {"mode": "confirm"}
+        if (hypothesis and choice == 2) or (not hypothesis and choice == 1):
+            return {
+                "mode": "edit",
+                "task_id": _ask("Task ID: "),
+                "title": _ask("Title: "),
+                "owner": _ask("Owner [adoption/interview]: ") or "adoption/interview",
+                "current_point": _ask("Current execution point: "),
+            }
+        if (hypothesis and choice == 3) or (not hypothesis and choice == 2):
+            return {"mode": "no_active_work"}
+        return None
+    if prompt.domain == "tasks / dependencies":
+        choice = _choose(("No dependencies", "Yes — enter dependencies", "Add another current task", "Leave unresolved"))
+        if choice == 1:
+            return {"mode": "no_dependencies"}
+        if choice == 2:
+            return {"mode": "dependencies", "dependencies": _ask("Dependencies (comma-separated task IDs): ")}
+        if choice == 3:
+            return {
+                "mode": "additional_task",
+                "task_id": _ask("Task ID: "),
+                "title": _ask("Title: "),
+                "owner": _ask("Owner [optional]: "),
+                "dependencies": _ask("Dependencies [none]: ") or "none",
+            }
+        return None
+    if prompt.domain == "blocked / waiting":
+        choice = _choose(("No", "Yes", "Unknown / leave unresolved"))
+        return {"mode": "no"} if choice == 1 else {"mode": "yes", "reason": _ask("Blocking or waiting reason: ")} if choice == 2 else None
+    if prompt.domain == "validation / evidence":
+        levels = ("UNTESTED", "SYNTHETIC", "AI_REVIEWED", "HUMAN_VERIFIED", "Leave unresolved")
+        choice = _choose(levels)
+        return None if choice == 5 else {"mode": levels[choice - 1], "evidence": _ask("Evidence summary/reference [optional]: ")}
+    if prompt.domain == "current governing decisions":
+        choice = _choose(("No additional governing decisions", "Add governing decision", "Leave unresolved"))
+        if choice == 1:
+            return {"mode": "none"}
+        if choice == 2:
+            return {
+                "mode": "add",
+                "title": _ask("Decision title: "),
+                "context": _ask("Why this decision is needed: "),
+                "decision": _ask("Decision: "),
+            }
+        return None
+    if prompt.domain == "next action":
+        suggested = dict(prompt.hypothesis).get("next_action", str(known.get("suggested_next_action", "")))
+        next_options: tuple[str, ...] = ((f"Accept suggested action: {suggested}",) if suggested else ()) + (
+            "Enter/edit next action",
+            "No active work",
+            "Leave unresolved",
+        )
+        choice = _choose(next_options)
+        if suggested and choice == 1:
+            return {"mode": "accept", "next_action": suggested}
+        offset = 1 if suggested else 0
+        if choice == 1 + offset:
+            return {"mode": "edit", "next_action": _ask("Exact next safe action: ")}
+        if choice == 2 + offset:
+            return {"mode": "no_active_work"}
+        return None
+    choice = _choose(("Confirm", "Enter correction", "Leave unresolved"))
+    return {"mode": "confirm", "value": prompt.reason} if choice == 1 else {"mode": "edit", "value": _ask("Current truth: ")} if choice == 2 else None
+
+
+def _canonical_answer(prompt: InterviewPrompt, answer: object) -> str:
+    if isinstance(answer, str):
+        return answer
+    if not isinstance(answer, dict):
+        raise ProkronError(f"invalid answer for {prompt.domain}")
+    mode = str(answer.get("mode", ""))
+    hypothesis = dict(prompt.hypothesis)
+    if prompt.domain == "active work":
+        if mode == "no_active_work":
+            return "none"
+        if mode not in {"confirm", "edit"}:
+            raise ProkronError("active work answer mode must be confirm, edit, or no_active_work")
+        values = hypothesis if mode == "confirm" else {key: str(answer.get(key, "")) for key in hypothesis or ("task_id", "title", "owner", "current_point")}
+        fields = (values.get("task_id", ""), values.get("title", ""), values.get("owner", "adoption/interview"), values.get("current_point", ""))
+        if not all(fields):
+            raise ProkronError("active work requires task_id, title, owner, and current_point")
+        return " | ".join((*fields[:3], "none", fields[3]))
+    if prompt.domain == "tasks / dependencies":
+        if mode == "no_dependencies":
+            return "none"
+        if mode == "dependencies":
+            dependencies = str(answer.get("dependencies", "")).strip()
+            if not dependencies:
+                raise ProkronError("dependencies answer requires at least one task ID")
+            return f"dependencies|{dependencies}"
+        if mode == "additional_task":
+            return "|".join(str(answer.get(key, "")) for key in ("mode", "task_id", "title", "owner", "dependencies"))
+        raise ProkronError("tasks / dependencies answer mode is invalid")
+    if prompt.domain == "blocked / waiting":
+        if mode == "no":
+            return "none"
+        reason = str(answer.get("reason", "")).strip()
+        if mode != "yes" or not reason:
+            raise ProkronError("blocked / waiting `yes` answer requires a reason")
+        return f"current|{reason}"
+    if prompt.domain == "validation / evidence":
+        level = mode if mode in VALIDATION_LEVELS else str(answer.get("level", ""))
+        if level not in VALIDATION_LEVELS:
+            raise ProkronError("validation answer requires a supported validation level")
+        return f"{level} | {answer.get('evidence') or 'Developer confirmation during adoption.'}"
+    if prompt.domain == "current governing decisions":
+        if mode == "none":
+            return "none"
+        decision_values = tuple(str(answer.get(key, "")).strip() for key in ("title", "context", "decision"))
+        if mode != "add" or not all(decision_values):
+            raise ProkronError("governing decision requires title, context, and decision text")
+        return "|".join((mode, *decision_values))
+    if prompt.domain == "next action":
+        if mode == "no_active_work":
+            return "none"
+        value = str(answer.get("next_action", hypothesis.get("next_action", ""))).strip()
+        if mode not in {"accept", "edit"} or not value:
+            raise ProkronError("next action answer requires an exact action")
+        return value
+    return str(answer.get("value", ""))
+
+
+def _interview_fingerprint(project: Path, discovery: Discovery, prompts: tuple[InterviewPrompt, ...], from_path: str | None) -> str:
+    source_metadata: list[tuple[str, int, int]] = []
+    for source in discovery.sources:
+        path = project / source.path
+        if path.is_file() and not path.is_symlink():
+            stat = path.stat()
+            source_metadata.append((source.path, stat.st_size, stat.st_mtime_ns))
+    payload = {
+        "branch": discovery.branch,
+        "head": discovery.head,
+        "changed_files": discovery.changed_files,
+        "recent_files": discovery.recent_files,
+        "from": from_path,
+        "questions": [(prompt.domain, prompt.evidence, prompt.reason, prompt.hypothesis) for prompt in prompts],
+        "sources": source_metadata,
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def _load_answer_store(candidate: Path, fingerprint: str) -> dict[str, dict[str, object]]:
+    path = candidate / "ANSWERS.json"
+    if not path.is_file() or path.is_symlink():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return {}
+    answers = payload.get("answers", {}) if payload.get("fingerprint") == fingerprint else {}
+    return answers if isinstance(answers, dict) else {}
+
+
+def _stored_from_path(candidate: Path) -> str | None:
+    path = candidate / "ANSWERS.json"
+    if not path.is_file() or path.is_symlink():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8")).get("from")
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+def _save_answer_store(
+    candidate: Path,
+    fingerprint: str,
+    from_path: str | None,
+    answers: dict[str, dict[str, object]],
+) -> None:
+    candidate.mkdir(exist_ok=True)
+    payload = {"fingerprint": fingerprint, "from": from_path, "answers": answers}
+    (candidate / "ANSWERS.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _record_answer(prompt: InterviewPrompt, answer: object) -> dict[str, object]:
+    _canonical_answer(prompt, answer)
+    return {
+        "domain": prompt.domain,
+        "objective": prompt.objective,
+        "answer": answer,
+        "confirmation_timestamp": datetime.now(UTC).isoformat(),
+        "confidence": Confidence.CONFIRMED_HUMAN,
+        "source": "adoption interview",
+    }
+
+
+def interview_items_json(items: tuple[InterviewPrompt, ...]) -> str:
+    return json.dumps(
+        [
+            {
+                "domain": item.domain,
+                "requirement": item.requirement,
+                "status": item.status,
+                "confidence": item.confidence,
+                "evidence": item.evidence,
+                "reason": item.reason,
+                "objective": item.objective,
+                "hypothesis": dict(item.hypothesis) or None,
+                "allowed_answer_modes": item.answer_modes,
+            }
+            for item in items
+        ],
+        indent=2,
+    )
 
 
 def _task_markdown(task: Task) -> str:
@@ -944,6 +1239,8 @@ def materialize_confirmations(
     active_answer = answers.get("active work")
     next_answer = answers.get("next action")
     validation_answer = answers.get("validation / evidence")
+    task_answer = answers.get("tasks / dependencies")
+    blocked_answer = answers.get("blocked / waiting")
     validation = "UNTESTED"
     validation_evidence = "Developer confirmation during adoption."
     # ponytail: interactive Core materializes one active and one blocked task; edit candidate Markdown for larger task graphs.
@@ -965,42 +1262,53 @@ def materialize_confirmations(
                 issues.append("active work answer must be `TASK_ID | title | owner | dependencies-or-none | current execution point`")
             elif not re.fullmatch(r"T-[A-Za-z0-9][A-Za-z0-9-]*", parts[0]) or parts[0] in existing_ids:
                 issues.append("active work answer must use a unique valid T- task ID")
-            elif not next_answer or next_answer.casefold() == "none":
-                issues.append("confirmed active work requires an exact next action")
             else:
                 dependencies = (
                     () if parts[3].casefold() in {"none", "-"} else tuple(item.strip() for item in parts[3].split(",") if item.strip())
                 )
+                if task_answer and task_answer.startswith("dependencies|"):
+                    dependencies = tuple(item.strip() for item in task_answer.split("|", 1)[1].split(",") if item.strip())
+                blocked_reason = blocked_answer.split("|", 1)[1].strip() if blocked_answer and blocked_answer.startswith("current|") else ""
                 task = Task(
                     parts[0],
                     parts[1],
                     dependencies,
-                    "WIP",
+                    "BLOCKED" if blocked_reason else "WIP",
                     validation,
                     parts[2],
                     date.today().isoformat(),
                     f"Complete the human-confirmed active work: {parts[1]}",
-                    validation_evidence,
+                    f"{validation_evidence} Blocking state: {blocked_reason}" if blocked_reason else validation_evidence,
                     (),
-                )
-                intent = Intent(
-                    task.id,
-                    task.owner,
-                    date.today().isoformat(),
-                    task.acceptance,
-                    parts[4],
-                    (),
-                    (),
-                    next_answer,
                 )
                 added_tasks.append(task)
-                added_intents.append(intent)
+                if not blocked_reason and next_answer and next_answer.casefold() != "none":
+                    added_intents.append(
+                        Intent(
+                            task.id,
+                            task.owner,
+                            date.today().isoformat(),
+                            task.acceptance,
+                            parts[4],
+                            (),
+                            (),
+                            next_answer,
+                        )
+                    )
                 existing_ids.add(task.id)
-                valid_domains.update(("active work", "next action"))
-    blocked_answer = answers.get("blocked / waiting")
+                valid_domains.add("active work")
+                if next_answer and next_answer.casefold() != "none":
+                    valid_domains.add("next action")
+                if task_answer:
+                    valid_domains.add("tasks / dependencies")
+                if blocked_answer:
+                    valid_domains.add("blocked / waiting")
     if blocked_answer:
         if blocked_answer.casefold() == "none":
             valid_domains.add("blocked / waiting")
+        elif blocked_answer.startswith("current|"):
+            if active_answer:
+                valid_domains.add("blocked / waiting")
         else:
             parts = [part.strip() for part in blocked_answer.split("|", 2)]
             if len(parts) != 3 or not all(parts):
@@ -1023,12 +1331,37 @@ def materialize_confirmations(
                 added_tasks.append(task)
                 existing_ids.add(task.id)
                 valid_domains.add("blocked / waiting")
-    task_answer = answers.get("tasks / dependencies")
     if task_answer:
-        if task_answer.casefold() == "none":
+        if task_answer.casefold() == "none" or task_answer.startswith("dependencies|"):
             valid_domains.add("tasks / dependencies")
+        elif task_answer.startswith("additional_task|"):
+            parts = [part.strip() for part in task_answer.split("|", 4)]
+            if len(parts) != 5 or not all(parts[1:3]):
+                issues.append("additional task requires a valid task ID and title")
+            elif not re.fullmatch(r"T-[A-Za-z0-9][A-Za-z0-9-]*", parts[1]) or parts[1] in existing_ids:
+                issues.append("additional task must use a unique valid T- task ID")
+            else:
+                dependencies = () if parts[4].casefold() in {"none", "-", ""} else tuple(
+                    item.strip() for item in parts[4].split(",") if item.strip()
+                )
+                added_tasks.append(
+                    Task(
+                        parts[1],
+                        parts[2],
+                        dependencies,
+                        "TODO",
+                        "UNTESTED",
+                        parts[3],
+                        "",
+                        f"Complete the human-confirmed task: {parts[2]}",
+                        "Developer confirmation during adoption.",
+                        (),
+                    )
+                )
+                existing_ids.add(parts[1])
+                valid_domains.add("tasks / dependencies")
         else:
-            issues.append("additional tasks must be materialized by editing candidate TASKS.md before apply")
+            issues.append("tasks / dependencies answer is invalid")
     if next_answer and (active_answer is None or active_answer.casefold() == "none"):
         if next_answer.casefold() == "none":
             valid_domains.add("next action")
@@ -1056,6 +1389,42 @@ def materialize_confirmations(
     )
 
 
+def _materialize_interview_decision(
+    decisions_text: str,
+    decisions: tuple[Decision, ...],
+    answer: str | None,
+) -> tuple[str, tuple[Decision, ...], tuple[str, ...]]:
+    if not answer or answer == "none":
+        return decisions_text, decisions, ()
+    parts = [part.strip() for part in answer.split("|", 3)]
+    if len(parts) != 4 or parts[0] != "add" or not all(parts[1:]):
+        return decisions_text, decisions, ("governing decision requires title, context, and decision text",)
+    decision = Decision(
+        _next_baseline_id(decisions),
+        parts[1],
+        date.today().isoformat(),
+        "ACCEPTED",
+        "developer confirmation via adoption interview",
+        (),
+        (),
+        (),
+        (),
+        (),
+        parts[2],
+        parts[3],
+    )
+    return decisions_text.rstrip() + "\n\n" + _decision_markdown(decision), (*decisions, decision), ()
+
+
+def _decision_markdown(decision: Decision) -> str:
+    return (
+        f"## {decision.id}: {decision.title}\n"
+        f"- Date: {decision.date}\n- Status: {decision.status}\n- Authority: {decision.authority}\n"
+        "- Supersedes: none\n- Amends: none\n- Corrects: none\n- Rejects: none\n- Affects: none\n"
+        f"- Context: {decision.context}\n- Decision: {decision.decision}\n"
+    )
+
+
 def _render_assessments(assessments: tuple[DomainAssessment, ...]) -> list[str]:
     lines: list[str] = []
     for assessment in assessments:
@@ -1074,7 +1443,13 @@ def _render_assessments(assessments: tuple[DomainAssessment, ...]) -> list[str]:
     return lines
 
 
-def _render_interview(assessments: tuple[DomainAssessment, ...], prompts: tuple[InterviewPrompt, ...], answers: dict[str, str]) -> str:
+def _render_interview(
+    assessments: tuple[DomainAssessment, ...],
+    prompts: tuple[InterviewPrompt, ...],
+    answers: dict[str, str],
+    answer_records: dict[str, dict[str, object]] | None = None,
+) -> str:
+    answer_records = answer_records or {}
     lines = ["# Adoption Interview", "", "## Coverage assessments", "", *_render_assessments(assessments), "## Structured prompts", ""]
     by_domain = {assessment.domain: assessment for assessment in assessments}
     for prompt in prompts:
@@ -1090,10 +1465,13 @@ def _render_interview(assessments: tuple[DomainAssessment, ...], prompts: tuple[
         lines.extend(
             (
                 f"### {prompt.domain}",
+                f"- Objective: {prompt.objective}",
+                f"- Allowed answer modes: {', '.join(prompt.answer_modes)}",
                 f"- Context: {prompt.context}",
                 f"- Question: {prompt.question}",
                 f"- Answer: {answers.get(prompt.domain, 'pending')}",
-                f"- Confirmation date: {date.today().isoformat() if prompt.domain in answers else 'pending'}",
+                f"- Confirmation timestamp: {answer_records.get(prompt.domain, {}).get('confirmation_timestamp', 'pending')}",
+                f"- Source: {answer_records.get(prompt.domain, {}).get('source', 'pending')}",
                 f"- Confidence: {assessment.confidence}",
                 f"- Candidate effect: {materialized if confirmed else 'pending correction or review'}",
                 "",
@@ -1127,13 +1505,22 @@ def _next_baseline_id(decisions: tuple[object, ...]) -> str:
     return f"ADR-A{number:03d}"
 
 
-def stage_adoption(project: Path, from_path: str | None = None, interactive: bool = False) -> AdoptionResult:
+def stage_adoption(
+    project: Path,
+    from_path: str | None = None,
+    interactive: bool = False,
+    answer_updates: dict[str, object] | None = None,
+    resume: bool = False,
+) -> AdoptionResult:
     discovery = discover(project)
     if discovery.has_prokron:
         raise ProkronError(".prokron already exists; adoption cannot replace canonical state")
     candidate = project / ADOPTION_DIR
-    if candidate.exists():
+    resumable = interactive or resume or answer_updates is not None
+    if candidate.exists() and not resumable:
         raise ProkronError(f"{ADOPTION_DIR} already exists; review or remove the existing candidate first")
+    if candidate.exists() and from_path is None and resumable:
+        from_path = _stored_from_path(candidate)
     root = _source_root(project, from_path)
     strict_migration = root is not None
     template_root = files("prokron").joinpath("templates")
@@ -1170,7 +1557,6 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
     }
     purpose, purpose_source = _project_purpose(project)
     inspected = _inspect_current_sources(project, discovery)
-    baseline_id = _next_baseline_id(decisions)
     assessments = assess_domains(
         project,
         discovery,
@@ -1184,14 +1570,50 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
         inspected,
         format_issues if strict_migration else {},
     )
-    prompts = generate_interview_prompts(assessments)
-    answers = _answer_prompts(prompts) if interactive else {}
+    suggested_next_action = next(
+        (source.summary for source in inspected if set(source.concepts) & {"roadmap", "implementation-plan", "current-work"}),
+        "",
+    )
+    prompts = generate_interview_prompts(assessments, suggested_next_action)
+    fingerprint = _interview_fingerprint(project, discovery, prompts, from_path)
+    answer_records = _load_answer_store(candidate, fingerprint) if resumable else {}
+    by_domain = {prompt.domain: prompt for prompt in prompts}
+    for domain, answer in (answer_updates or {}).items():
+        if domain not in by_domain:
+            raise ProkronError(f"no unresolved adoption interview item for domain: {domain}")
+        answer_records[domain] = _record_answer(by_domain[domain], answer)
+    if interactive:
+        remaining = tuple(prompt for prompt in prompts if prompt.domain not in answer_records)
+        print(f"Prokron found {len(prompts)} confirmations required before adoption.")
+        print(f"{len(answer_records)} confirmations already recorded.")
+        known: dict[str, object] = {"suggested_next_action": suggested_next_action}
+        for index, prompt in enumerate(remaining, 1):
+            print(f"\n[{index}/{len(remaining)}] {prompt.domain.title()}\n")
+            try:
+                answer = _interactive_answer(prompt, known)
+            except KeyboardInterrupt:
+                print("\nInterview paused; recorded answers were preserved.")
+                break
+            if answer is not None:
+                answer_records[prompt.domain] = _record_answer(prompt, answer)
+                _save_answer_store(candidate, fingerprint, from_path, answer_records)
+    answers = {
+        domain: _canonical_answer(by_domain[domain], record["answer"])
+        for domain, record in answer_records.items()
+        if domain in by_domain and "answer" in record
+    }
     imported_task_count = len(tasks)
     imported_intent_count = len(intents)
+    imported_decision_count = len(decisions)
     tasks_text, intents_text, tasks, intents, assessments, confirmation_issues, materialized_ids = materialize_confirmations(
         tasks_text, intents_text, tasks, intents, assessments, answers
     )
     conflicts.extend(confirmation_issues)
+    decisions_text, decisions, decision_issues = _materialize_interview_decision(
+        decisions_text, decisions, answers.get("current governing decisions")
+    )
+    conflicts.extend(decision_issues)
+    baseline_id = _next_baseline_id(decisions)
     semantic_domains = {
         "project identity",
         "current authority",
@@ -1305,7 +1727,8 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
             f"- Working tree: {'modified' if discovery.dirty else 'clean'} [{Confidence.CONFIRMED_REPOSITORY}; source: Git status]",
             f"- Imported candidate tasks: {imported_task_count} [{selected_confidence if usable_selected['TASKS.md'] else Confidence.UNKNOWN}; source: {usable_selected['TASKS.md'].relative_to(project).as_posix() if usable_selected['TASKS.md'] else 'none'}]",
             f"- Human-confirmed operational tasks: {len(tasks) - imported_task_count} [{Confidence.CONFIRMED_HUMAN if len(tasks) > imported_task_count else Confidence.UNKNOWN}; source: {'developer interview' if len(tasks) > imported_task_count else 'none'}]",
-            f"- Candidate decisions before baseline: {len(decisions)} [{selected_confidence if usable_selected['DECISIONS.md'] else Confidence.UNKNOWN}; source: {usable_selected['DECISIONS.md'].relative_to(project).as_posix() if usable_selected['DECISIONS.md'] else 'none'}]",
+            f"- Imported candidate decisions: {imported_decision_count} [{selected_confidence if usable_selected['DECISIONS.md'] else Confidence.UNKNOWN}; source: {usable_selected['DECISIONS.md'].relative_to(project).as_posix() if usable_selected['DECISIONS.md'] else 'none'}]",
+            f"- Human-confirmed governing decisions: {len(decisions) - imported_decision_count} [{Confidence.CONFIRMED_HUMAN if len(decisions) > imported_decision_count else Confidence.UNKNOWN}; source: {'adoption interview' if len(decisions) > imported_decision_count else 'none'}]",
             f"- Imported active intents: {imported_intent_count} [{selected_confidence if usable_selected['INTENTS.md'] else Confidence.UNKNOWN}; source: {usable_selected['INTENTS.md'].relative_to(project).as_posix() if usable_selected['INTENTS.md'] else 'none'}]",
             f"- Human-confirmed active intents: {len(intents) - imported_intent_count} [{Confidence.CONFIRMED_HUMAN if len(intents) > imported_intent_count else Confidence.UNKNOWN}; source: {'developer interview' if len(intents) > imported_intent_count else 'none'}]",
             "",
@@ -1414,8 +1837,8 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
             "",
         ]
     )
-    interview = _render_interview(assessments, prompts, answers)
-    candidate.mkdir()
+    interview = _render_interview(assessments, prompts, answers, answer_records)
+    candidate.mkdir(exist_ok=resumable)
     outputs = {
         "BASELINE.md": baseline,
         "TASKS.md": tasks_text,
@@ -1429,7 +1852,18 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
     }
     for name, content in outputs.items():
         (candidate / name).write_text(content, encoding="utf-8")
-    return AdoptionResult(discovery, tuple(unknowns), tuple(conflicts), tuple(incompatibilities))
+    if resumable:
+        _save_answer_store(candidate, fingerprint, from_path, answer_records)
+    by_domain_assessment = {assessment.domain: assessment for assessment in assessments}
+    remaining_items = tuple(prompt for prompt in prompts if by_domain_assessment[prompt.domain].blocking)
+    return AdoptionResult(
+        discovery,
+        tuple(unknowns),
+        tuple(conflicts),
+        tuple(incompatibilities),
+        remaining_items,
+        len(answer_records),
+    )
 
 
 def apply_adoption(project: Path) -> None:

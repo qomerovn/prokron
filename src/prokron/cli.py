@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from importlib.metadata import version
 from pathlib import Path
 
-from .adoption import apply_adoption, discover, render_discovery, stage_adoption
+from .adoption import apply_adoption, discover, interview_items_json, render_discovery, stage_adoption
 from .core import eligible_tasks, load_state, validate
 from .models import ProkronError
 from .operations import checkpoint, initialize, start_task
@@ -24,6 +25,8 @@ def command_adopt(args: argparse.Namespace) -> int:
         raise ProkronError("--apply cannot be combined with --interactive or --from")
     if args.dry_run and args.interactive:
         raise ProkronError("--dry-run cannot be combined with --interactive")
+    if args.interactive and (args.questions_json or args.answer_json):
+        raise ProkronError("--interactive cannot be combined with --questions-json or --answer-json")
     if args.dry_run:
         print(render_discovery(discover(project)), end="")
         return 0
@@ -31,13 +34,40 @@ def command_adopt(args: argparse.Namespace) -> int:
         apply_adoption(project)
         print("Applied the reviewed adoption baseline to .prokron/.")
         return 0
-    result = stage_adoption(project, args.from_path, args.interactive)
+    answer_updates: dict[str, object] | None = None
+    if args.answer_json:
+        try:
+            payload = json.loads(args.answer_json)
+        except json.JSONDecodeError as error:
+            raise ProkronError(f"--answer-json must be valid JSON: {error.msg}") from error
+        if not isinstance(payload, dict) or not isinstance(payload.get("domain"), str):
+            raise ProkronError("--answer-json requires an object with a string `domain`")
+        domain = payload.pop("domain")
+        answer_updates = {domain: payload.pop("answer", payload)}
+    result = stage_adoption(
+        project,
+        args.from_path,
+        args.interactive,
+        answer_updates,
+        args.questions_json or args.answer_json is not None,
+    )
+    if args.questions_json:
+        print(interview_items_json(result.interview_items))
+        return 0
     print(
         f"Staged adoption candidate in .prokron-adoption/ "
         f"({len(result.unknowns)} blocking unknown(s), {len(result.conflicts)} conflict(s), "
         f"{len(result.incompatibilities)} migration incompatibility(s))."
     )
-    print("Review the candidate, resolve every BLOCKING item, then run `prokron adopt --apply`.")
+    if args.interactive or args.answer_json:
+        print(f"{len(result.interview_items)} blocking confirmations remain.")
+        if not result.interview_items and not result.conflicts:
+            print("Adoption candidate is ready.")
+            print("Run: prokron adopt --apply")
+        else:
+            print("Run `prokron adopt --interactive` to continue.")
+    else:
+        print("Review the candidate, resolve every BLOCKING item, then run `prokron adopt --apply`.")
     return 0
 
 
@@ -135,6 +165,8 @@ def parser() -> argparse.ArgumentParser:
     mode = adopt.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="Discover candidate sources without modifying project files.")
     mode.add_argument("--apply", action="store_true", help="Promote a reviewed, unblocked candidate into .prokron/.")
+    mode.add_argument("--questions-json", action="store_true", help="Stage or resume and print unresolved interview items as JSON.")
+    mode.add_argument("--answer-json", help="Record one structured interview answer as JSON and recompute the candidate.")
     adopt.add_argument("--from", dest="from_path", help="Prefer structured legacy state from this repository directory.")
     adopt.add_argument("--interactive", action="store_true", help="Ask only questions needed to close required current-state gaps.")
     adopt.set_defaults(handler=command_adopt)

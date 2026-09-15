@@ -11,3 +11,7 @@ prokron checkpoint --did ... --validation ... --left-mid-air ... --next ...
 ```
 
 The CLI is the only executable interface. `.prokron/` remains authoritative.
+
+During adoption, retrieve structured questions with `prokron adopt
+--questions-json` and submit human answers through `prokron adopt --answer-json
+'<json>'`; do not edit `.prokron-adoption/INTERVIEW.md` directly.

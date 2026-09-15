@@ -99,3 +99,13 @@
 - Acceptance: Adoption uses explicit evidence-backed domain assessments and contextual prompts, covers conditional and optional domains correctly, materializes confirmed operational state, and reports discovery separately from inspected content.
 - Evidence: 33 unittests, Ruff, strict mypy, isolated wheel/sdist build, installed-wheel dry-run smoke test, Git diff check, and Prokron doctor pass on 2026-09-15.
 - Governed by: ADR-001
+
+## T-V02-03: Add the interactive adoption interview
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-V02-02
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: Adoption provides a guided resumable interview, provider-neutral structured question and answer primitives, evidence-backed human confirmation, and guarded materialization without weakening non-interactive adoption.
+- Evidence: Ruff, strict mypy, 49 unittests, wheel/sdist build, installed-wheel non-interactive and interactive adoption, apply and doctor smoke tests, K-Ledger six-question dogfood, and Git diff check passed on 2026-09-16.
+- Governed by: ADR-001, ADR-005

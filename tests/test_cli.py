@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -22,6 +23,28 @@ class ProkronCLITest(unittest.TestCase):
             check=False,
             input=input_text,
         )
+
+    def make_interview_fixture(self, project: Path) -> None:
+        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=project, check=True)
+        files = {
+            "README.md": "# Ledger\n\nTracks operational finance.\n",
+            "docs/domain-model.md": "# Domain model\n\nDefines the current ledger model.\n",
+            "docs/business-rules.md": "# Business rules\n\nEvery posting balances.\n",
+            "docs/roadmap.md": "# Roadmap\n\nImplement GRNI reconciliation next.\n",
+            "docs/implementation-plan.md": "# Implementation plan\n\nBuild GRNI reconciliation.\n",
+            "docs/open-decisions.md": "# Open decisions\n\nTax mapping remains unresolved.\n",
+        }
+        for relative, content in files.items():
+            path = project / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "."], cwd=project, check=True)
+        subprocess.run(
+            ["git", "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "Start GRNI"],
+            cwd=project,
+            check=True,
+        )
+        subprocess.run(["git", "checkout", "-qb", "T-M6-02-grni"], cwd=project, check=True)
 
     def test_version_matches_release(self) -> None:
         result = self.run_cli(PROJECT_ROOT, "--version")
@@ -174,10 +197,9 @@ class ProkronCLITest(unittest.TestCase):
                 "handoff",
                 "--interactive",
                 input_text=(
-                    "Current architecture is documented in docs/architecture.md.\n"
-                    "Preserve the deployment contract.\n"
-                    "No separate governing decisions; the adoption baseline governs.\n"
-                    "The documented deployment contract is current.\n"
+                    "2\nCurrent architecture is documented in docs/architecture.md.\n"
+                    "2\nPreserve the deployment contract.\n"
+                    "1\n"
                 ),
             )
             self.assertEqual(adopted.returncode, 0, adopted.stderr)
@@ -206,15 +228,28 @@ class ProkronCLITest(unittest.TestCase):
             answers = (
                 "\n".join(
                     (
+                        "2",
                         "Maintains deployment safety.",
+                        "2",
                         "Developer confirmation governs adoption.",
+                        "2",
                         "A single local service.",
+                        "2",
                         "Preserve migration safety.",
-                        "T-100 | Resume migration | dev/owner | none | Schema update is half complete.",
-                        "none",
-                        "none",
-                        "SYNTHETIC | focused migration tests pass",
-                        "Use migration-safe writes.",
+                        "1",
+                        "T-100",
+                        "Resume migration",
+                        "dev/owner",
+                        "Schema update is half complete.",
+                        "1",
+                        "1",
+                        "2",
+                        "focused migration tests pass",
+                        "2",
+                        "Use migration-safe writes",
+                        "Migration writes can corrupt state.",
+                        "Use only migration-safe writes.",
+                        "1",
                         "Run the focused migration tests.",
                     )
                 )
@@ -233,7 +268,87 @@ class ProkronCLITest(unittest.TestCase):
             self.assertEqual(self.run_cli(project, "adopt", "--apply").returncode, 0)
             context = self.run_cli(project, "context", "T-100")
             self.assertIn("Run the focused migration tests.", context.stdout)
-            self.assertIn("ADR-A001: Adoption baseline", context.stdout)
+            self.assertIn("ADR-A002: Adoption baseline", context.stdout)
+            self.assertIn("ADR-A001: Use migration-safe writes", (project / ".prokron" / "DECISIONS.md").read_text(encoding="utf-8"))
+
+    def test_interactive_adoption_resumes_and_materializes_confirmed_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            self.make_interview_fixture(project)
+
+            interrupted = self.run_cli(project, "adopt", "--interactive", input_text="1\n")
+            self.assertEqual(interrupted.returncode, 2)
+            self.assertIn("interactive input ended", interrupted.stderr)
+            stored = json.loads((project / ".prokron-adoption" / "ANSWERS.json").read_text(encoding="utf-8"))
+            self.assertEqual(stored["answers"]["active work"]["confidence"], "CONFIRMED_HUMAN")
+            self.assertEqual(stored["answers"]["active work"]["source"], "adoption interview")
+            self.assertIn("confirmation_timestamp", stored["answers"]["active work"])
+
+            resumed = self.run_cli(project, "adopt", "--interactive", input_text="1\n1\n1\n\n1\n1\n")
+            self.assertEqual(resumed.returncode, 0, resumed.stderr)
+            self.assertIn("1 confirmations already recorded.", resumed.stdout)
+            self.assertNotIn("[1/5] Active Work", resumed.stdout)
+            self.assertIn("0 blocking confirmations remain.", resumed.stdout)
+            self.assertIn("Adoption candidate is ready.", resumed.stdout)
+            self.assertIn("Run: prokron adopt --apply", resumed.stdout)
+
+            candidate = project / ".prokron-adoption"
+            task_text = (candidate / "TASKS.md").read_text(encoding="utf-8")
+            intent_text = (candidate / "INTENTS.md").read_text(encoding="utf-8")
+            interview = (candidate / "INTERVIEW.md").read_text(encoding="utf-8")
+            self.assertIn("## T-M6-02: GRNI", task_text)
+            self.assertIn("- Validation: UNTESTED", task_text)
+            self.assertIn("## T-M6-02", intent_text)
+            self.assertIn("Implement GRNI reconciliation next.", intent_text)
+            self.assertIn("- Source: adoption interview", interview)
+            self.assertIn("- Confidence: CONFIRMED_HUMAN", interview)
+            report = (candidate / "ADOPTION_REPORT.md").read_text(encoding="utf-8")
+            blocked = report.split("### blocked / waiting\n", 1)[1].split("### ", 1)[0]
+            self.assertIn("- Status: ESTABLISHED", blocked)
+            self.assertIn("- Confidence: CONFIRMED_HUMAN", blocked)
+            self.assertNotIn("- BLOCKING:", report)
+
+    def test_agent_question_and_answer_primitives_recompute_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            self.make_interview_fixture(project)
+
+            questions = self.run_cli(project, "adopt", "--questions-json")
+            self.assertEqual(questions.returncode, 0, questions.stderr)
+            items = json.loads(questions.stdout)
+            self.assertEqual(len(items), 6)
+            active = next(item for item in items if item["domain"] == "active work")
+            self.assertEqual(active["confidence"], "INFERRED_HIGH")
+            self.assertEqual(active["hypothesis"]["task_id"], "T-M6-02")
+            self.assertIn("allowed_answer_modes", active)
+
+            answered = self.run_cli(
+                project,
+                "adopt",
+                "--answer-json",
+                '{"domain":"active work","mode":"confirm"}',
+            )
+            self.assertEqual(answered.returncode, 0, answered.stderr)
+            self.assertIn("5 blocking confirmations remain.", answered.stdout)
+            remaining = json.loads(self.run_cli(project, "adopt", "--questions-json").stdout)
+            self.assertNotIn("active work", {item["domain"] for item in remaining})
+
+            blocked_apply = self.run_cli(project, "adopt", "--apply")
+            self.assertEqual(blocked_apply.returncode, 2)
+            self.assertIn("unresolved blocking", blocked_apply.stderr)
+
+    def test_interactive_adoption_fails_clearly_when_input_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            self.make_interview_fixture(project)
+            result = self.run_cli(project, "adopt", "--interactive", input_text="")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("interactive input ended before the interview completed", result.stderr)
+
+    def test_adoption_has_no_provider_runtime_dependency(self) -> None:
+        metadata = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8").casefold()
+        for provider in ("openai", "anthropic", "gemini"):
+            self.assertNotIn(provider, metadata)
 
     def test_empty_markers_without_final_newlines_are_removed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

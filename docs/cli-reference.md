@@ -11,7 +11,7 @@ Creates `.prokron/` from packaged Markdown templates, installs a managed
 bootstrap block in existing `AGENTS.md` and `CLAUDE.md` files, and generates
 `STATE.md` and `TASK_GRAPH.md`. Repeated calls preserve existing canonical state.
 
-### `prokron adopt [--dry-run | --apply] [--from DIR] [--interactive]`
+### `prokron adopt [--dry-run | --apply | --questions-json | --answer-json JSON] [--from DIR] [--interactive]`
 
 Discovers likely current-state sources without reconstructing repository history.
 `--dry-run` prints deterministic Git, tree, documentation, state-source, and
@@ -19,13 +19,14 @@ implementation-evidence discovery without writing files. A normal run stages a
 reviewable candidate under `.prokron-adoption/`; `--from DIR` prefers structured
 legacy `TASKS.md`, `DECISIONS.md`, and `INTENTS.md` from that directory.
 
-`--interactive` evaluates a fixed coverage schema, then asks contextual questions
-only for blocking evidence gaps. The same assessments, evidence, reasons, and
-prompts are written to `INTERVIEW.md` for external-agent or manual review; Core
-does not call a model provider. Confirmed active work, execution point, blockers,
-validation, and next action are materialized into candidate `TASKS.md` and
-`INTENTS.md`. Governing confirmations are summarized by the single baseline
-decision instead of producing one ADR per answer.
+`--interactive` evaluates a fixed coverage schema, then presents a guided quiz
+only for blocking evidence gaps. Answers are persisted after each question, so a
+later interactive run resumes without asking confirmed questions again.
+`INTERVIEW.md` is the generated audit record; it is not edited by users or agents.
+`--questions-json` retrieves unresolved structured items and `--answer-json`
+records one structured answer through Core. Core does not call a model provider.
+Confirmed work, dependencies, blockers, validation, decisions, and next action
+are materialized into the appropriate candidate state files.
 
 Required and relevant conditional domains block apply until established;
 optional historical domains never block. `--apply` validates candidate canonical

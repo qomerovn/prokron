@@ -47,3 +47,15 @@
 - Affects: T-V011-01
 - Context: The published v0.1 release used MIT even though Apache-2.0 was intended; that historical grant and its artifacts must remain intact.
 - Decision: Beginning with v0.1.1, distribute Prokron code under Apache-2.0 while keeping Prokron, Qomero, and associated logos subject to a separate trademark policy.
+
+## ADR-005: Keep adoption interviews provider-neutral and resumable
+- Date: 2026-09-16
+- Status: ACCEPTED
+- Authority: product specification
+- Supersedes: none
+- Amends: none
+- Corrects: none
+- Rejects: none
+- Affects: T-V02-03
+- Context: Existing-project adoption needs a guided human interview without requiring model providers or treating a generated Markdown report as an input interface.
+- Decision: Core exposes structured questions and answers, the CLI provides the guided interview, answers persist with provenance for deterministic resume, and INTERVIEW.md remains generated audit output.
