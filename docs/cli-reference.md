@@ -48,13 +48,6 @@ custom bootstrap instructions, and refuses to replace an existing `.prokron/`.
 The full reviewed candidate and confirmation become `ADOPTION.json`; current
 tasks, decisions, intent and journal remain Markdown authority.
 
-### `prokron adopt fallback [--dry-run | --apply | --questions-json | --answer-json JSON] [--from DIR] [--interactive]`
-
-Explicit access to the previous heuristic interview and legacy migration path.
-It stages `.prokron-adoption/`, retains its existing review guards and formats,
-and never runs automatically from the primary adoption path. Old adoption flags
-now require the `fallback` subcommand. Legacy sources remain untouched.
-
 ### `prokron resume`
 
 Prints a JSON continuity pack with current canonical tasks, decisions, intents
@@ -80,8 +73,8 @@ checkpoint/current HEAD and `/prokron-sync` guidance. HEAD remains provenance;
 commits containing only excluded generated state do not make the snapshot stale. Blocked or completed
 action targets produce explicit conditions rather than a semantic guess.
 
-Repositories initialized with `init` or adopted via fallback retain the existing
-ordered `TODO` eligibility listing; they have no agent-adoption checkpoint.
+Repositories initialized with `init` retain the existing ordered `TODO`
+eligibility listing; they have no agent-adoption checkpoint.
 
 ### `prokron graph`
 

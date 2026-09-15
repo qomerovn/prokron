@@ -6,9 +6,9 @@ Generated from `TASKS.md`; do not edit manually.
 - DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06, T-V011-01, T-V011-02, T-V02-01, T-V02-02, T-V02-03, T-V02-04, T-HARNESS-01, T-HARNESS-02
 - WIP: none
 - TODO: none
-- BLOCKED: T-V02-05
+- BLOCKED: none
 - Eligible now: none
-- Blocked / waiting: T-V02-05
+- Blocked / waiting: none
 
 ## Tasks
 - T-V01-01 [DONE] Harden typed parsers and integrity validation
@@ -57,10 +57,6 @@ Generated from `TASKS.md`; do not edit manually.
   - eligible: no
 - T-V02-04 [DONE] Consolidate the current-state adoption review
   - depends on: T-V02-03
-  - unlocks: T-V02-05
-  - eligible: no
-- T-V02-05 [BLOCKED] Close Adoption Boundary dogfood
-  - depends on: T-V02-04
   - unlocks: none
   - eligible: no
 - T-HARNESS-01 [DONE] Extract the deterministic state harness

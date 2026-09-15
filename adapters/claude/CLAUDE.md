@@ -53,6 +53,3 @@ Before ending or switching sessions, run:
 ```text
 prokron checkpoint --did ... --validation ... --left-mid-air ... --next ...
 ```
-
-The optional old heuristic interview and legacy importer are only available
-under `prokron adopt fallback`; do not call them for primary agent adoption.

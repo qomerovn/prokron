@@ -120,24 +120,14 @@
 - Evidence: Ruff, strict mypy, 51 unittests, wheel/sdist build, installed-wheel K-Ledger grouped-confirmation and apply smoke tests, Prokron doctor, and Git diff check passed on 2026-09-16.
 - Governed by: ADR-005
 
-## T-V02-05: Close Adoption Boundary dogfood
-- Status: BLOCKED
-- Validation: SYNTHETIC
-- Dependencies: T-V02-04
-- Owner: codex/primary
-- Claimed: 2026-09-16
-- Acceptance: Navigation content is never inferred as a next action, real K-Ledger adoption applies only confirmed state, all release gates pass, and a fresh agent can recover current truth from the adopted Prokron state alone.
-- Evidence: Navigation regression, grouped interview regressions, Ruff, strict mypy, 52 unittests, wheel/sdist build, installed-wheel generic smoke, and Git diff check pass. Real K-Ledger apply, doctor, status, and next pass, but canonical TASKS.md copied roughly 128 inert legacy rows despite importing zero tasks; fresh-agent continuity therefore fails the no-reconstruction requirement.
-- Governed by: ADR-005
-
 ## T-HARNESS-01: Extract the deterministic state harness
 - Status: DONE
 - Validation: SYNTHETIC
 - Dependencies: none
 - Owner: codex/primary
 - Claimed: 2026-09-16
-- Acceptance: Agent-authored brownfield candidates validate and require digest-bound human confirmation before publication; semantic heuristics are explicit fallback; fresh-process resume preserves current state; stale next actions are rejected; existing deterministic integrity and fallback regressions pass.
-- Evidence: 68 unittests, Ruff, strict mypy, wheel/sdist build, clean installed-wheel brownfield adoption and fresh-process resume, stale-state rejection, fallback import, and Git diff check pass on 2026-09-16.
+- Acceptance: Agent-authored brownfield candidates validate and require digest-bound human confirmation before publication; fresh-process resume preserves current state; stale next actions are rejected; Core contains no semantic inference engine.
+- Evidence: Deterministic adoption, integrity, fresh-process resume, and stale-state regressions pass; the semantic fallback was removed under ADR-007.
 - Governed by: ADR-006
 
 ## T-HARNESS-02: Clean up the deterministic adoption implementation

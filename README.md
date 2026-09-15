@@ -55,10 +55,7 @@ prokron adopt apply
 prokron resume
 ```
 
-The old heuristic interview and structured legacy importer remain available
-explicitly through `prokron adopt fallback --interactive` and
-`prokron adopt fallback --from handoff/`. See the
-[adoption protocol](docs/deterministic-harness.md) and
+See the [adoption protocol](docs/deterministic-harness.md) and
 [example candidate](examples/brownfield-candidate.json).
 
 ## How it works
@@ -88,7 +85,6 @@ completion evidence, and stale generated views.
 - [Architecture](docs/architecture.md): state ownership, runtime boundaries, and design trade-offs.
 - [Deterministic harness](docs/deterministic-harness.md): current product boundary, audit, adoption, and continuity.
 - [Product thesis](docs/project-prokron-full-thesis-architecture-v2.md): the full protocol direction.
-- [Adoption boundary supplement](docs/prokron-thesis-supplement-adoption-boundary.md): current-state reconstruction and existing-project migration semantics.
 - [Greenfield example](examples/greenfield): a checked-in project-state fixture.
 
 ## Development

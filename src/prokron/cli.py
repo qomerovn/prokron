@@ -46,60 +46,6 @@ def command_resume(args: argparse.Namespace) -> int:
     return 0 if result["status"] == "CURRENT" else 2
 
 
-def command_adopt_fallback(args: argparse.Namespace) -> int:
-    from .fallback.adoption import apply_adoption, discover, interview_items_json, render_discovery, stage_adoption
-
-    project = Path.cwd()
-    if args.apply and (args.interactive or args.from_path):
-        raise ProkronError("--apply cannot be combined with --interactive or --from")
-    if args.dry_run and args.interactive:
-        raise ProkronError("--dry-run cannot be combined with --interactive")
-    if args.interactive and (args.questions_json or args.answer_json):
-        raise ProkronError("--interactive cannot be combined with --questions-json or --answer-json")
-    if args.dry_run:
-        print(render_discovery(discover(project)), end="")
-        return 0
-    if args.apply:
-        apply_adoption(project)
-        print("Applied the reviewed adoption baseline to .prokron/.")
-        return 0
-    answer_updates: dict[str, object] | None = None
-    if args.answer_json:
-        try:
-            payload = json.loads(args.answer_json)
-        except json.JSONDecodeError as error:
-            raise ProkronError(f"--answer-json must be valid JSON: {error.msg}") from error
-        if not isinstance(payload, dict) or not isinstance(payload.get("domain"), str):
-            raise ProkronError("--answer-json requires an object with a string `domain`")
-        domain = payload.pop("domain")
-        answer_updates = {domain: payload.pop("answer", payload)}
-    result = stage_adoption(
-        project,
-        args.from_path,
-        args.interactive,
-        answer_updates,
-        args.questions_json or args.answer_json is not None,
-    )
-    if args.questions_json:
-        print(interview_items_json(result.interview_items))
-        return 0
-    print(
-        f"Staged adoption candidate in .prokron-adoption/ "
-        f"({len(result.unknowns)} blocking unknown(s), {len(result.conflicts)} conflict(s), "
-        f"{len(result.incompatibilities)} migration incompatibility(s))."
-    )
-    if args.interactive or args.answer_json:
-        print(f"{len(result.interview_items)} blocking confirmations remain.")
-        if not result.interview_items and not result.conflicts:
-            print("Adoption candidate is ready.")
-            print("Run: prokron adopt fallback --apply")
-        else:
-            print("Run `prokron adopt fallback --interactive` to continue.")
-    else:
-        print("Review the candidate, resolve every BLOCKING item, then run `prokron adopt fallback --apply`.")
-    return 0
-
-
 def command_status(args: argparse.Namespace) -> int:
     project = Path.cwd()
     state = load_state(project)
@@ -213,15 +159,6 @@ def parser() -> argparse.ArgumentParser:
     confirm_parser = adoption_commands.add_parser("confirm")
     confirm_parser.add_argument("--by", required=True, help="Identity of the human who explicitly approved this candidate")
     confirm_parser.add_argument("--digest", required=True, help="Digest of the candidate the human reviewed")
-    fallback = adoption_commands.add_parser("fallback", help="Optional heuristic interview and legacy migration")
-    mode = fallback.add_mutually_exclusive_group()
-    mode.add_argument("--dry-run", action="store_true", help="Discover candidate sources without modifying project files.")
-    mode.add_argument("--apply", action="store_true", help="Promote a reviewed, unblocked candidate into .prokron/.")
-    mode.add_argument("--questions-json", action="store_true", help="Stage or resume and print unresolved interview items as JSON.")
-    mode.add_argument("--answer-json", help="Record one structured interview answer as JSON and recompute the candidate.")
-    fallback.add_argument("--from", dest="from_path", help="Prefer structured legacy state from this repository directory.")
-    fallback.add_argument("--interactive", action="store_true", help="Ask only questions needed to close required current-state gaps.")
-    fallback.set_defaults(handler=command_adopt_fallback)
     doctor = subcommands.add_parser("doctor")
     doctor.add_argument("--ci", action="store_true", help="Reserved for CI output policy; exit semantics are already CI-safe.")
     doctor.set_defaults(handler=command_doctor)

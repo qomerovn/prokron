@@ -80,19 +80,13 @@ class AgentAdoptionTest(unittest.TestCase):
         self.assertIn("Preserve existing receipt identifiers.", result.stdout)
         self.assertEqual(self.cli("adopt", "apply").returncode, 2)
 
-    def test_primary_path_never_calls_or_imports_heuristic_engine(self) -> None:
-        with patch("prokron.fallback.adoption.discover", side_effect=AssertionError("semantic inference")), \
-             patch("prokron.fallback.adoption.stage_adoption", side_effect=AssertionError("semantic inference")):
-            facts = prepare(self.project)
-            self.assertNotIn("architecture_file", facts)
-            self.assertNotIn("current_task", facts)
-            self.assertNotIn("next_action", facts)
-            self.adopt()
-            self.assertEqual(resume(self.project)["status"], "CURRENT")
-        result = subprocess.run([sys.executable, "-c", "import prokron.cli, sys; "
-                                 "assert not any(n.startswith('prokron.fallback') for n in sys.modules)"],
-                                capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
+    def test_prepare_has_no_semantic_inference(self) -> None:
+        facts = prepare(self.project)
+        self.assertNotIn("architecture_file", facts)
+        self.assertNotIn("current_task", facts)
+        self.assertNotIn("next_action", facts)
+        self.adopt()
+        self.assertEqual(resume(self.project)["status"], "CURRENT")
         self.assertNotIn("hypothesis", self.cli("adopt", "schema").stdout)
 
     def test_read_paths_do_not_repeat_publication_round_trip(self) -> None:

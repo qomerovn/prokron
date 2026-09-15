@@ -9,7 +9,7 @@ from pathlib import Path
 from .models import ProkronError
 
 GENERATED = (
-    ".prokron", ".prokron-candidate", ".prokron-adoption", ".venv", "node_modules",
+    ".prokron", ".prokron-candidate", ".venv", "node_modules",
     "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".artifacts", "artifacts", "build", "dist",
 )
 PATHS = (".", *(f":(exclude,glob)**/{name}/**" for name in GENERATED), ":(exclude)AGENTS.md", ":(exclude)CLAUDE.md")

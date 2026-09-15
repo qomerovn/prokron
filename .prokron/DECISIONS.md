@@ -71,3 +71,15 @@
 - Affects: T-HARNESS-01
 - Context: Semantic ranking and interviews grew inside adoption even though the current coding agent already owns repository understanding.
 - Decision: Primary adoption accepts agent-authored structured state, validates it, records digest-bound human confirmation and publishes canonical state. Core owns deterministic facts and integrity; the agent owns semantics and questions. Preserve operational Markdown authority and store the reviewed adoption snapshot and checkpoint as JSON. Keep heuristic adoption and legacy migration behind explicit fallback.
+
+## ADR-007: Remove semantic adoption fallback
+- Date: 2026-09-16
+- Status: ACCEPTED
+- Authority: product owner
+- Supersedes: none
+- Amends: ADR-006
+- Corrects: none
+- Rejects: none
+- Affects: T-HARNESS-01
+- Context: The deterministic adoption path is proven and the retained semantic engine adds maintenance weight without serving the intended product architecture.
+- Decision: Remove semantic ranking, generated interviews, and legacy import from the product and CLI. Git history remains the recovery path if a concrete compatibility need returns.

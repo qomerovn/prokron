@@ -7,7 +7,7 @@ Prokron is distributed under Apache-2.0.
 
 ### Changed
 
-- Make agent-authored, schema-validated state the primary brownfield adoption path; keep heuristic discovery under `prokron adopt fallback`.
+- Replace heuristic adoption with an agent-authored, schema-validated brownfield adoption path.
 
 ### Fixed
 

@@ -39,12 +39,11 @@ are always safe to regenerate.
 | `candidate.py` | Agent candidate schema, provenance/status rules, operational validation |
 | `persistence.py` | Strict JSON reads and atomic metadata writes |
 | `adoption.py` | Agent ingestion, digest-bound confirmation, publication and continuity |
-| `fallback/adoption.py` | Optional heuristic interview, ranking and legacy import |
 | `cli.py` | Argument parsing, command output, and exit-code policy |
 
 Adapters teach the current coding agent to inspect evidence, reason about project
 semantics, ask material questions, and submit structured state through the CLI.
-Core never imports fallback or generates semantic questions.
+Core never scans repository content or generates semantic questions.
 
 ## Read and write flow
 
@@ -99,9 +98,7 @@ not invalidate the checkpoint.
 Resume returns the snapshot together with current operational Markdown, with
 explicit stale/blocked conditions. No repository understanding is performed.
 
-The optional fallback retains `.prokron-adoption/`, semantic ranking, interviews,
-and structured legacy imports behind `prokron adopt fallback`. It is not a Core
-dependency. See the [audit and new boundary](deterministic-harness.md).
+See the [audit and current boundary](deterministic-harness.md).
 
 ## License and trademarks
 
@@ -114,4 +111,3 @@ Qomero names and associated logos remain subject to the separate
 - [CLI reference](cli-reference.md)
 - [Getting started](getting-started.md)
 - [Full product thesis](project-prokron-full-thesis-architecture-v2.md)
-- [Adoption boundary supplement](prokron-thesis-supplement-adoption-boundary.md)

@@ -182,3 +182,12 @@
 - Learned: CodeGraph confirmed that next and resume reached publication-only Markdown round-trip validation through adopted_state; reads now use schema and graph validation while ingest and apply retain the round trip.
 - Left mid-air: Cleanup complete; branch changes remain uncommitted. CodeGraph 1.6.0 is installed, connected to Codex, and its 19-file project index is current.
 - Next: Review and commit the deterministic harness branch.
+
+## 2026-09-15T20:46:18+00:00 — semantic fallback removal
+- Task: maintenance/fallback-removal
+- Owner: codex/primary
+- Did: Removed the semantic adoption engine, fallback CLI, legacy tests, and superseded adoption supplement; compacted deterministic docs and CLI tests.
+- Validation: 50 tests, Ruff, strict mypy, wheel/sdist build, doctor, Git diff check, and synced CodeGraph status pass.
+- Learned: The deterministic harness fully replaces the semantic fallback; no source or test callers remain.
+- Left mid-air: Local main is ready to push after explicit approval for the GitHub destination.
+- Next: Push local main to the approved origin.

@@ -16,9 +16,6 @@ including statement provenance, uncertainty and the human confirmation digest.
 precedence over adoption-time tasks, decisions and intent. `CHECKPOINT.json`
 records the Git HEAD, branch and working-tree fingerprint at the last checkpoint.
 
-Fallback-adopted repositories may instead carry `ADOPTION_REPORT.md`,
-`SOURCE_MAP.md`, and `INTERVIEW.md` as their legacy adoption audit record.
-
 Before substantial work, run `prokron resume`, then `prokron context <task>`
 for selective detail. If state is stale, follow `/prokron-sync` in the agent
 adapter: evaluate the changes and record an explicit checkpoint.
