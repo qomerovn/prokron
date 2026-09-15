@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).parents[1]
 
 
 class ProkronCLITest(unittest.TestCase):
-    def run_cli(self, directory: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    def run_cli(self, directory: Path, *args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
         environment = os.environ.copy()
         environment["PYTHONPATH"] = str(PROJECT_ROOT / "src")
         return subprocess.run(
@@ -20,6 +20,7 @@ class ProkronCLITest(unittest.TestCase):
             capture_output=True,
             text=True,
             check=False,
+            input=input_text,
         )
 
     def test_version_matches_release(self) -> None:
@@ -137,17 +138,97 @@ class ProkronCLITest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("incomplete managed Prokron block", result.stderr)
 
-    def test_adopt_initializes_without_inventing_history(self) -> None:
+    def test_adoption_discovers_stages_migrates_and_applies(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             project = Path(temporary)
             subprocess.run(["git", "init", "-q"], cwd=project, check=True)
-            (project / "README.md").write_text("# Existing project\n", encoding="utf-8")
-            adopted = self.run_cli(project, "adopt")
+            (project / "README.md").write_text("# Existing project\n\nMaintains the current deployment contract.\n", encoding="utf-8")
+            (project / "AGENTS.md").write_text("# Constraints\n\nPreserve the deployment contract.\n", encoding="utf-8")
+            (project / "docs").mkdir()
+            (project / "docs" / "architecture.md").write_text("# Current architecture\n", encoding="utf-8")
+            (project / "tests").mkdir()
+            (project / "tests" / "test_contract.py").write_text("def test_contract():\n    assert True\n", encoding="utf-8")
+            handoff = project / "handoff"
+            handoff.mkdir()
+            (handoff / "TASKS.md").write_text(
+                "# Tasks\n\n## T-001: Verify deployment\n"
+                "- Status: TODO\n- Validation: UNTESTED\n- Dependencies: none\n- Owner:\n- Claimed:\n"
+                "- Acceptance: Deployment contract is verified.\n- Evidence:\n- Governed by: none\n",
+                encoding="utf-8",
+            )
+            (handoff / "DECISIONS.md").write_text("# Decisions\n", encoding="utf-8")
+            (handoff / "INTENTS.md").write_text("# Intents\n\nNo intent in flight.\n", encoding="utf-8")
+
+            dry_run = self.run_cli(project, "adopt", "--dry-run")
+            self.assertEqual(dry_run.returncode, 0, dry_run.stderr)
+            self.assertIn("handoff/TASKS.md [CURRENT_SUPPORTING]", dry_run.stdout)
+            self.assertIn("tests/ [IMPLEMENTATION_EVIDENCE]", dry_run.stdout)
+            self.assertIn("No project files were modified.", dry_run.stdout)
+            self.assertFalse((project / ".prokron-adoption").exists())
+            self.assertFalse((project / ".prokron").exists())
+
+            adopted = self.run_cli(
+                project,
+                "adopt",
+                "--from",
+                "handoff",
+                "--interactive",
+                input_text=("Current architecture is documented in docs/architecture.md.\nPreserve the deployment contract.\n"),
+            )
             self.assertEqual(adopted.returncode, 0, adopted.stderr)
-            self.assertIn("without inferring missing history", adopted.stdout)
-            journal = (project / ".prokron" / "JOURNAL.md").read_text(encoding="utf-8")
-            self.assertIn("Existing history was not inferred", journal)
+            self.assertIn("0 blocking unknown(s), 0 conflict(s)", adopted.stdout)
+            candidate = project / ".prokron-adoption"
+            self.assertTrue(candidate.is_dir())
+            self.assertFalse((project / ".prokron").exists())
+            self.assertIn("- Status: PROPOSED", (candidate / "DECISIONS.md").read_text(encoding="utf-8"))
+            self.assertTrue((candidate / "INTERVIEW.md").is_file())
+            self.assertTrue(handoff.is_dir())
+
+            applied = self.run_cli(project, "adopt", "--apply")
+            self.assertEqual(applied.returncode, 0, applied.stderr)
+            self.assertFalse(candidate.exists())
+            self.assertTrue(handoff.is_dir())
+            decisions = (project / ".prokron" / "DECISIONS.md").read_text(encoding="utf-8")
+            self.assertIn("## ADR-A001: Adoption baseline", decisions)
+            self.assertIn("- Status: ACCEPTED", decisions)
+            self.assertIn("adoption boundary", (project / ".prokron" / "JOURNAL.md").read_text(encoding="utf-8"))
             self.assertEqual(self.run_cli(project, "doctor").returncode, 0)
+
+    def test_interactive_adoption_persists_human_confirmation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            subprocess.run(["git", "init", "-q"], cwd=project, check=True)
+            answers = (
+                "\n".join(
+                    (
+                        "Maintains deployment safety.",
+                        "Developer confirmation governs adoption.",
+                        "A single local service.",
+                        "Preserve migration safety.",
+                        "T-100 | Resume migration | dev/owner | none | Schema update is half complete.",
+                        "none",
+                        "none",
+                        "SYNTHETIC | focused migration tests pass",
+                        "Use migration-safe writes.",
+                        "Run the focused migration tests.",
+                    )
+                )
+                + "\n"
+            )
+            adopted = self.run_cli(project, "adopt", "--interactive", input_text=answers)
+            self.assertEqual(adopted.returncode, 0, adopted.stderr)
+            candidate = project / ".prokron-adoption"
+            report = (candidate / "ADOPTION_REPORT.md").read_text(encoding="utf-8")
+            self.assertIn("[CONFIRMED_HUMAN]", report)
+            self.assertNotIn("- BLOCKING:", report)
+            self.assertIn("## T-100: Resume migration", (candidate / "TASKS.md").read_text(encoding="utf-8"))
+            self.assertIn("## T-100", (candidate / "INTENTS.md").read_text(encoding="utf-8"))
+            baseline = (candidate / "BASELINE.md").read_text(encoding="utf-8")
+            self.assertIn("Human-confirmed operational tasks: 1 [CONFIRMED_HUMAN", baseline)
+            self.assertEqual(self.run_cli(project, "adopt", "--apply").returncode, 0)
+            context = self.run_cli(project, "context", "T-100")
+            self.assertIn("Run the focused migration tests.", context.stdout)
+            self.assertIn("ADR-A001: Adoption baseline", context.stdout)
 
     def test_empty_markers_without_final_newlines_are_removed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -156,10 +237,12 @@ class ProkronCLITest(unittest.TestCase):
             self.assertEqual(self.run_cli(project, "init").returncode, 0)
             tasks = project / ".prokron" / "TASKS.md"
             tasks.write_text(
-                tasks.read_text(encoding="utf-8").replace(
+                tasks.read_text(encoding="utf-8")
+                .replace(
                     "# Tasks\n\nAdd tasks using this exact field vocabulary:\n\n```markdown\n",
                     "# Tasks\n\n",
-                ).replace("\n```\n", "\n"),
+                )
+                .replace("\n```\n", "\n"),
                 encoding="utf-8",
             )
             intents = project / ".prokron" / "INTENTS.md"

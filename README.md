@@ -39,8 +39,14 @@ prokron checkpoint \
 prokron doctor
 ```
 
-Use `prokron adopt` instead of `init` for an existing project. It creates an
-explicit empty state and does not invent historical tasks or decisions.
+Use `prokron adopt --dry-run` to inspect an existing project without changing it.
+`prokron adopt` stages an auditable candidate under `.prokron-adoption/`; review
+and resolve its blocking unknowns or conflicts before `prokron adopt --apply`
+promotes it to canonical state. Use `--from handoff/` for structured legacy state
+and `--interactive` for evidence-driven confirmation. `INTERVIEW.md` exposes the
+fixed coverage assessments and contextual prompts for human or external-agent
+review. Confirmed active execution is written to candidate `TASKS.md` and
+`INTENTS.md`; historical tasks and decisions are not reconstructed automatically.
 
 ## How it works
 
@@ -65,6 +71,7 @@ completion evidence, and stale generated views.
 - [CLI reference](docs/cli-reference.md): commands, arguments, behavior, and exit codes.
 - [Architecture](docs/architecture.md): state ownership, runtime boundaries, and design trade-offs.
 - [Product thesis](docs/project-prokron-full-thesis-architecture-v2.md): the full protocol direction.
+- [Adoption boundary supplement](docs/prokron-thesis-supplement-adoption-boundary.md): current-state reconstruction and existing-project migration semantics.
 - [Greenfield example](examples/greenfield): a checked-in project-state fixture.
 
 ## Development

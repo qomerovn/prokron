@@ -80,3 +80,21 @@
 - Learned: Release validation must invoke the installed console script because source tests did not expose the missing --version interface.
 - Left mid-air: Verification is complete; GitHub release publishing is unavailable because the configured gh tokens are invalid.
 - Next: Re-authenticate gh, push the verified commit, and create the v0.1.1 release with both artifacts.
+
+## 2026-09-15T11:17:17Z — T-V02-01
+- Task: T-V02-01
+- Owner: codex/primary
+- Did: Added deterministic adoption discovery and source classification, non-canonical candidate state, explicit confidence and provenance, targeted confirmation, legacy handoff import, a baseline decision, and guarded apply.
+- Validation: 29 unittests, Ruff, strict mypy, isolated-output package build, installed-wheel dry-run smoke test, and Prokron doctor pass.
+- Learned: Filename discovery can bound retrieval, but architecture prose must remain unknown until a human confirms it; source priority alone cannot establish authority.
+- Left mid-air: Adoption-boundary implementation is complete; no candidate or canonical project state was changed by the live dry-run.
+- Next: Exercise the adoption workflow on real external repositories before expanding semantic extraction.
+
+## 2026-09-15T11:40:11Z — T-V02-02
+- Task: T-V02-02
+- Owner: codex/primary
+- Did: Replaced presence-only coverage and generic questions with a fixed evidence-backed coverage schema, contextual structured prompts, conditional and optional domain semantics, canonical operational materialization, and honest discovery-versus-inspection reporting.
+- Validation: 33 unittests, Ruff, strict mypy, isolated wheel/sdist build, installed-wheel dry-run smoke test, Git diff check, and Prokron doctor pass.
+- Learned: Human confirmation is useful only when its operational effects enter canonical tasks and intents; optional history can remain explicitly unknown without blocking adoption.
+- Left mid-air: The requested v2 semantic remediation is complete; broader semantic interpretation remains intentionally external to Core.
+- Next: Validate the bounded heuristics and structured interview handoff against real existing repositories.

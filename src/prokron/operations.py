@@ -21,10 +21,11 @@ This repository uses `.prokron/` as persistent project coordination state.
 Before implementation:
 
 1. Read `.prokron/README.md`.
-2. Inspect `.prokron/TASK_GRAPH.md`.
-3. Locate the relevant task in `.prokron/TASKS.md`.
-4. Read `.prokron/INTENTS.md` if work is active.
-5. Read only the governing specification, decisions, and code required for that task.
+2. Read `.prokron/BASELINE.md` if an adoption baseline exists.
+3. Inspect `.prokron/TASK_GRAPH.md`.
+4. Locate the relevant task in `.prokron/TASKS.md`.
+5. Read `.prokron/INTENTS.md` if work is active.
+6. Read only the governing specification, decisions, and code required for that task.
 
 Do not reconstruct current project truth from chat history.
 
@@ -55,7 +56,7 @@ def install_bootstrap(path: Path) -> bool:
     return True
 
 
-def initialize(project: Path, adoption: bool = False) -> bool:
+def initialize(project: Path) -> bool:
     if not is_git_repository(project):
         raise ProkronError("Prokron requires a Git repository. Run `git init` first.")
     root = prokron_dir(project)
@@ -77,10 +78,6 @@ def initialize(project: Path, adoption: bool = False) -> bool:
     for path in candidates:
         install_bootstrap(path)
     sync_derived(project, state)
-    if adoption and created:
-        # ponytail: explicit uncertainty is safer than speculative history reconstruction.
-        with (root / "JOURNAL.md").open("a", encoding="utf-8") as journal:
-            journal.write("\n<!-- Existing history was not inferred during adoption. -->\n")
     return created
 
 

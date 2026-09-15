@@ -11,10 +11,27 @@ Creates `.prokron/` from packaged Markdown templates, installs a managed
 bootstrap block in existing `AGENTS.md` and `CLAUDE.md` files, and generates
 `STATE.md` and `TASK_GRAPH.md`. Repeated calls preserve existing canonical state.
 
-### `prokron adopt`
+### `prokron adopt [--dry-run | --apply] [--from DIR] [--interactive]`
 
-Performs the same initialization for an existing project and records that prior
-history was not inferred. It does not inspect commits to invent tasks or decisions.
+Discovers likely current-state sources without reconstructing repository history.
+`--dry-run` prints deterministic Git, tree, documentation, state-source, and
+implementation-evidence discovery without writing files. A normal run stages a
+reviewable candidate under `.prokron-adoption/`; `--from DIR` prefers structured
+legacy `TASKS.md`, `DECISIONS.md`, and `INTENTS.md` from that directory.
+
+`--interactive` evaluates a fixed coverage schema, then asks contextual questions
+only for blocking evidence gaps. The same assessments, evidence, reasons, and
+prompts are written to `INTERVIEW.md` for external-agent or manual review; Core
+does not call a model provider. Confirmed active work, execution point, blockers,
+validation, and next action are materialized into candidate `TASKS.md` and
+`INTENTS.md`. Governing confirmations are summarized by the single baseline
+decision instead of producing one ADR per answer.
+
+Required and relevant conditional domains block apply until established;
+optional historical domains never block. `--apply` validates candidate canonical
+state, promotes it to `.prokron/`, accepts the baseline decision, links generated
+operational tasks to it, and installs the normal bootstrap and derived views.
+Legacy sources remain untouched.
 
 ### `prokron status`
 

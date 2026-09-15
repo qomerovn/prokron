@@ -79,3 +79,23 @@
 - Acceptance: A clean isolated installation from the v0.1.1 artifact reports the correct version and passes fresh init, idempotency, core commands, and existing-project adoption without source-checkout dependencies.
 - Evidence: 27 unittests, Ruff, strict mypy, build, and doctor pass; clean wheel and sdist installations report 0.1.1; fresh init, repeat init, status, next, graph, and three-commit adoption smoke tests pass outside the source checkout.
 - Governed by: ADR-004
+
+## T-V02-01: Establish the adoption boundary
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-V011-02
+- Owner: codex/primary
+- Claimed: 2026-09-15
+- Acceptance: Adoption deterministically discovers and classifies current-state evidence, stages an auditable candidate without changing canonical state, preserves uncertainty and provenance, and applies only after explicit approval.
+- Evidence: 29 unittests, Ruff, strict mypy, package build in an isolated output directory, installed-wheel dry-run smoke test, and Prokron doctor pass on 2026-09-15.
+- Governed by: ADR-001
+
+## T-V02-02: Align adoption semantics with the v2 supplement
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-V02-01
+- Owner: codex/primary
+- Claimed: 2026-09-15
+- Acceptance: Adoption uses explicit evidence-backed domain assessments and contextual prompts, covers conditional and optional domains correctly, materializes confirmed operational state, and reports discovery separately from inspected content.
+- Evidence: 33 unittests, Ruff, strict mypy, isolated wheel/sdist build, installed-wheel dry-run smoke test, Git diff check, and Prokron doctor pass on 2026-09-15.
+- Governed by: ADR-001

@@ -5,6 +5,7 @@ import sys
 from importlib.metadata import version
 from pathlib import Path
 
+from .adoption import apply_adoption, discover, render_discovery, stage_adoption
 from .core import eligible_tasks, load_state, validate
 from .models import ProkronError
 from .operations import checkpoint, initialize, start_task
@@ -18,8 +19,24 @@ def command_init(args: argparse.Namespace) -> int:
 
 
 def command_adopt(args: argparse.Namespace) -> int:
-    created = initialize(Path.cwd(), adoption=True)
-    print("Adopted repository without inferring missing history." if created else "Prokron already initialized; no canonical files changed.")
+    project = Path.cwd()
+    if args.apply and (args.interactive or args.from_path):
+        raise ProkronError("--apply cannot be combined with --interactive or --from")
+    if args.dry_run and args.interactive:
+        raise ProkronError("--dry-run cannot be combined with --interactive")
+    if args.dry_run:
+        print(render_discovery(discover(project)), end="")
+        return 0
+    if args.apply:
+        apply_adoption(project)
+        print("Applied the reviewed adoption baseline to .prokron/.")
+        return 0
+    result = stage_adoption(project, args.from_path, args.interactive)
+    print(
+        f"Staged adoption candidate in .prokron-adoption/ "
+        f"({len(result.unknowns)} blocking unknown(s), {len(result.conflicts)} conflict(s))."
+    )
+    print("Review the candidate, resolve every BLOCKING item, then run `prokron adopt --apply`.")
     return 0
 
 
@@ -108,12 +125,18 @@ def parser() -> argparse.ArgumentParser:
     subcommands = command_parser.add_subparsers(dest="command", required=True)
     for name, handler in {
         "init": command_init,
-        "adopt": command_adopt,
         "status": command_status,
         "next": command_next,
         "graph": command_graph,
     }.items():
         subcommands.add_parser(name).set_defaults(handler=handler)
+    adopt = subcommands.add_parser("adopt")
+    mode = adopt.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true", help="Discover candidate sources without modifying project files.")
+    mode.add_argument("--apply", action="store_true", help="Promote a reviewed, unblocked candidate into .prokron/.")
+    adopt.add_argument("--from", dest="from_path", help="Prefer structured legacy state from this repository directory.")
+    adopt.add_argument("--interactive", action="store_true", help="Ask only questions needed to close required current-state gaps.")
+    adopt.set_defaults(handler=command_adopt)
     doctor = subcommands.add_parser("doctor")
     doctor.add_argument("--ci", action="store_true", help="Reserved for CI output policy; exit semantics are already CI-safe.")
     doctor.set_defaults(handler=command_doctor)

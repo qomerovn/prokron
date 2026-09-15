@@ -34,7 +34,8 @@ are always safe to regenerate.
 | `markdown.py` | Strict parsing and field updates for canonical Markdown |
 | `core.py` | State loading, eligibility, and cross-file integrity validation |
 | `rendering.py` | Deterministic state, graph, and context rendering |
-| `operations.py` | Initialization, adoption, task starts, and checkpoints |
+| `operations.py` | Initialization, task starts, and checkpoints |
+| `adoption.py` | Deterministic discovery, candidate reconstruction, review gates, and apply |
 | `cli.py` | Argument parsing, command output, and exit-code policy |
 
 Adapters remain thin instructions that call the same CLI. They do not implement
@@ -77,11 +78,17 @@ The task graph and state summary are generated from canonical files. This preven
 multiple writable representations from drifting, at the cost of requiring
 `prokron status` after direct canonical edits.
 
-### Explicit uncertainty
+### Explicit uncertainty and the adoption boundary
 
-Adoption creates empty state instead of reconstructing a plausible history from
-commits. This sacrifices automatic backfilling to avoid turning inference into
-project authority.
+Adoption discovers filenames and Git metadata without recursively interpreting
+source code. It stages current-state candidates under `.prokron-adoption/` with
+source classifications, per-domain coverage assessments, contextual interview
+prompts, confidence labels, unknowns, conflicts, and a proposed baseline decision.
+Operational confirmations are materialized in candidate tasks and intents;
+governing confirmations are summarized by the baseline decision. Discovered
+filenames remain distinct from content actually parsed. Only an explicit,
+unblocked `prokron adopt --apply` promotes that directory to canonical `.prokron/`
+state. Legacy sources remain evidence.
 
 ## License and trademarks
 
@@ -94,3 +101,4 @@ Qomero names and associated logos remain subject to the separate
 - [CLI reference](cli-reference.md)
 - [Getting started](getting-started.md)
 - [Full product thesis](project-prokron-full-thesis-architecture-v2.md)
+- [Adoption boundary supplement](prokron-thesis-supplement-adoption-boundary.md)
