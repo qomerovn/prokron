@@ -173,7 +173,12 @@ class ProkronCLITest(unittest.TestCase):
                 "--from",
                 "handoff",
                 "--interactive",
-                input_text=("Current architecture is documented in docs/architecture.md.\nPreserve the deployment contract.\n"),
+                input_text=(
+                    "Current architecture is documented in docs/architecture.md.\n"
+                    "Preserve the deployment contract.\n"
+                    "No separate governing decisions; the adoption baseline governs.\n"
+                    "The documented deployment contract is current.\n"
+                ),
             )
             self.assertEqual(adopted.returncode, 0, adopted.stderr)
             self.assertIn("0 blocking unknown(s), 0 conflict(s)", adopted.stdout)

@@ -34,7 +34,8 @@ def command_adopt(args: argparse.Namespace) -> int:
     result = stage_adoption(project, args.from_path, args.interactive)
     print(
         f"Staged adoption candidate in .prokron-adoption/ "
-        f"({len(result.unknowns)} blocking unknown(s), {len(result.conflicts)} conflict(s))."
+        f"({len(result.unknowns)} blocking unknown(s), {len(result.conflicts)} conflict(s), "
+        f"{len(result.incompatibilities)} migration incompatibility(s))."
     )
     print("Review the candidate, resolve every BLOCKING item, then run `prokron adopt --apply`.")
     return 0

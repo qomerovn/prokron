@@ -9,7 +9,7 @@ from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from typing import Callable, TypeVar
 
-from .core import CANONICAL_FILES, VALIDATION_LEVELS, prokron_dir, validate
+from .core import CANONICAL_FILES, VALIDATION_LEVELS, eligible_tasks, prokron_dir, validate
 from .markdown import DECISION_HEADER, TASK_HEADER, parse_decisions, parse_intents, parse_journal, parse_tasks, update_section_fields
 from .models import Decision, Intent, ProkronError, ProkronState, Task
 from .operations import install_bootstrap, is_git_repository
@@ -69,6 +69,9 @@ class Discovery:
     branch: str
     head: str
     dirty: bool
+    recent_commit: str | None
+    changed_files: tuple[str, ...]
+    recent_files: tuple[str, ...]
     files: tuple[str, ...]
     has_prokron: bool
     sources: tuple[Source, ...]
@@ -79,6 +82,14 @@ class AdoptionResult:
     discovery: Discovery
     unknowns: tuple[str, ...]
     conflicts: tuple[str, ...]
+    incompatibilities: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class InspectedSource:
+    path: str
+    summary: str
+    concepts: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -190,6 +201,7 @@ def classify_source(path: PurePosixPath) -> Source | None:
         "composer.json",
     }
     ci_files = {".gitlab-ci.yml", "jenkinsfile", "azure-pipelines.yml", ".travis.yml"}
+    deployment_files = {"dockerfile", "docker-compose.yml", "compose.yml"}
     if path.parts and path.parts[0] == ".prokron":
         classification = SourceClassification.DERIVED if name in {"state.md", "task_graph.md"} else SourceClassification.CURRENT_CANONICAL
         return Source(text, 1, classification, "existing Prokron state")
@@ -200,7 +212,7 @@ def classify_source(path: PurePosixPath) -> Source | None:
             SourceClassification.STALE_OR_CONFLICTING,
             "name indicates stale or archived material",
         )
-    if _implementation_directory(path) is not None or name in manifests | ci_files:
+    if _implementation_directory(path) is not None or name in manifests | ci_files | deployment_files or stem in {"deploy", "release"}:
         return Source(text, 3, SourceClassification.IMPLEMENTATION_EVIDENCE, "implementation or build evidence")
     if not is_document:
         return None
@@ -241,10 +253,18 @@ def discover(project: Path) -> Discovery:
         raise ProkronError("Prokron requires a Git repository. Run `git init` first.")
     paths = _repository_files(project)
     sources = _classified_sources(paths)
+    status = _git(project, "status", "--porcelain")
     return Discovery(
         branch=_git(project, "branch", "--show-current") or "detached HEAD",
         head=_git_optional(project, "rev-parse", "--short", "HEAD") or "unborn",
-        dirty=bool(_git(project, "status", "--porcelain")),
+        dirty=bool(status),
+        recent_commit=_git_optional(project, "log", "-1", "--pretty=%s") or None,
+        changed_files=tuple(sorted(line[3:] for line in status.splitlines() if len(line) > 3)),
+        recent_files=tuple(
+            line
+            for line in (_git_optional(project, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD") or "").splitlines()
+            if line
+        )[:8],
         files=tuple(path.as_posix() for path in paths),
         has_prokron=prokron_dir(project).exists(),
         sources=sources,
@@ -259,6 +279,8 @@ def render_discovery(discovery: Discovery) -> str:
         f"  branch: {discovery.branch}",
         f"  HEAD: {discovery.head}",
         f"  working tree: {'modified' if discovery.dirty else 'clean'}",
+        f"  recent commit: {discovery.recent_commit or 'none'}",
+        f"  changed files: {', '.join(discovery.changed_files) or 'none'}",
         f"  files: {len(discovery.files)}",
         "",
         f"Existing Prokron state: {'present' if discovery.has_prokron else 'none'}",
@@ -324,13 +346,106 @@ def _read_structured(
     if path is None:
         return template, (), None
     try:
+        text = path.read_text(encoding="utf-8")
+        if not text.strip():
+            return template, (), None
         parsed = parser(path)
     except (OSError, UnicodeError, ProkronError) as error:
-        return template, (), f"{path.name} was not imported: {error}"
-    text = path.read_text(encoding="utf-8")
+        return template, (), f"{path.name} format is incompatible and was not imported: {error}"
     if not parsed and "## " in text and "```" not in text:
-        return template, (), f"{path.name} was not imported because it does not use Prokron's canonical field format"
+        return template, (), f"{path.name} format is incompatible and was not imported because it is not canonical Prokron state"
     return text.rstrip() + "\n", tuple(parsed), None
+
+
+SEMANTIC_CONCEPTS = (
+    ("architecture", ("architecture", "system design")),
+    ("domain-model", ("domain model", "domain-model")),
+    ("thesis", ("product thesis", "thesis")),
+    ("business-rules", ("business rules", "business-rules")),
+    ("constraints", ("constraints",)),
+    ("invariants", ("invariants",)),
+    ("roadmap", ("roadmap",)),
+    ("open-decisions", ("open decisions", "open-decisions")),
+    ("implementation-plan", ("implementation plan", "implementation-plan")),
+    ("current-work", ("current work", "current-work")),
+)
+
+
+def _concepts(value: str) -> tuple[str, ...]:
+    normalized = re.sub(r"[_-]+", " ", value.casefold())
+    return tuple(concept for concept, phrases in SEMANTIC_CONCEPTS if any(phrase in normalized for phrase in phrases))
+
+
+def _source_summary(text: str) -> str:
+    for line in text.splitlines():
+        value = line.strip()
+        if not value or value.startswith(("#", "```", "![", "---")):
+            continue
+        if re.fullmatch(r"(?:[-*]\s*)?\[[^]]+\]\([^)]+\)(?:\s*[|·]\s*\[[^]]+\]\([^)]+\))*", value):
+            continue
+        if re.match(r"^[-*]\s*(?:version|status|owner|updated|date):", value, re.IGNORECASE):
+            continue
+        return value[:240]
+    return ""
+
+
+def _inspect_current_sources(project: Path, discovery: Discovery) -> tuple[InspectedSource, ...]:
+    source_by_path = {source.path: source for source in discovery.sources}
+    candidates = [
+        (source, _concepts(source.path))
+        for source in discovery.sources
+        if source.classification == SourceClassification.CURRENT_SUPPORTING
+        and source.path.endswith((".md", ".txt", ".rst", ".adoc"))
+        and _concepts(source.path)
+    ]
+    order = {concept: index for index, (concept, _) in enumerate(SEMANTIC_CONCEPTS)}
+
+    def rank(item: tuple[Source, tuple[str, ...]]) -> tuple[int, int, str]:
+        source, concepts = item
+        path = PurePosixPath(source.path)
+        noise = 20 if {part.casefold() for part in path.parts} & {"forms", "forms_legal", "legal", "images", "assets"} else 0
+        noise += 10 if path.name.casefold().startswith("readme") else 0
+        return (noise + min(order[concept] for concept in concepts), len(path.parts), source.path)
+
+    inspected: list[InspectedSource] = []
+    read: dict[str, str] = {}
+
+    def inspect(path: str, concepts: tuple[str, ...]) -> None:
+        if path in read or len(inspected) >= 6:
+            return
+        text = (project / path).read_text(encoding="utf-8", errors="replace")[:4096]
+        read[path] = text
+        summary = _source_summary(text)
+        if summary:
+            inspected.append(InspectedSource(path, summary, concepts))
+
+    direct = sorted(candidates, key=rank)
+    for source, concepts in direct[:4]:
+        inspect(source.path, concepts)
+
+    # One local Markdown hop only; linked content competes inside the same six-file budget.
+    for origin in tuple(inspected):
+        for label, target in re.findall(r"\[([^]]+)]\(([^)]+\.md(?:#[^)]*)?)\)", read[origin.path], re.IGNORECASE):
+            linked_concepts = _concepts(f"{label} {target}")
+            if not linked_concepts:
+                continue
+            relative = target.split("#", 1)[0]
+            linked = (project / origin.path).parent.joinpath(relative).resolve()
+            try:
+                linked_path = linked.relative_to(project.resolve()).as_posix()
+            except ValueError:
+                continue
+            linked_source = source_by_path.get(linked_path)
+            if (
+                linked_source
+                and not linked.is_symlink()
+                and linked_source.classification in {SourceClassification.CURRENT_SUPPORTING, SourceClassification.UNKNOWN}
+            ):
+                inspect(linked_path, linked_concepts)
+
+    for source, concepts in direct:
+        inspect(source.path, concepts)
+    return tuple(inspected)
 
 
 def _project_purpose(project: Path) -> tuple[str, str | None]:
@@ -339,15 +454,7 @@ def _project_purpose(project: Path) -> tuple[str, str | None]:
         return "Unknown.", None
     lines = readmes[0].read_text(encoding="utf-8", errors="replace")[:8192].splitlines()
     paragraph = next((line.strip() for line in lines if line.strip() and not line.lstrip().startswith(("#", "[!", "![", "<"))), "")
-    return (paragraph or "Unknown."), readmes[0].relative_to(project).as_posix()
-
-
-def _paths_containing(discovery: Discovery, *needles: str) -> tuple[str, ...]:
-    return tuple(source.path for source in discovery.sources if any(needle in source.path.lower() for needle in needles))
-
-
-def _files_containing(discovery: Discovery, *needles: str) -> tuple[str, ...]:
-    return tuple(path for path in discovery.files if any(needle in path.lower() for needle in needles))
+    return (paragraph, readmes[0].relative_to(project).as_posix()) if paragraph else ("Unknown.", None)
 
 
 def _structured_assessment(
@@ -355,8 +462,10 @@ def _structured_assessment(
     paths: tuple[str, ...],
     explicit_source: bool,
     established_reason: str,
+    supported: bool = True,
+    unsupported_reason: str = "No usable current-state records were imported for this domain.",
 ) -> DomainAssessment:
-    if paths and explicit_source:
+    if paths and supported and explicit_source:
         return DomainAssessment(
             domain.domain,
             domain.requirement,
@@ -370,10 +479,12 @@ def _structured_assessment(
         domain.domain,
         domain.requirement,
         AssessmentStatus.NEEDS_CONFIRMATION,
-        Confidence.INFERRED_LOW if paths else Confidence.UNKNOWN,
+        Confidence.INFERRED_LOW if paths and supported else Confidence.UNKNOWN,
         paths,
         True,
-        "Candidate evidence exists but authority is unconfirmed." if paths else "No structured current-state evidence was inspected.",
+        "Candidate evidence exists but authority is unconfirmed."
+        if paths and supported
+        else unsupported_reason,
     )
 
 
@@ -387,9 +498,13 @@ def assess_domains(
     decisions: tuple[Decision, ...],
     intents: tuple[Intent, ...],
     conflicts: tuple[str, ...],
+    inspected: tuple[InspectedSource, ...] = (),
+    format_issues: dict[str, str] | None = None,
 ) -> tuple[DomainAssessment, ...]:
+    format_issues = format_issues or {}
     definitions = {item.domain: item for item in COVERAGE_SCHEMA}
     selected_paths = {name: (path.relative_to(project).as_posix(),) if path is not None else () for name, path in selected.items()}
+    inspected_paths = tuple(source.path for source in inspected)
     assessments: list[DomainAssessment] = []
     identity = definitions["project identity"]
     assessments.append(
@@ -404,7 +519,8 @@ def assess_domains(
         )
     )
     authority = definitions["current authority"]
-    authority_paths = tuple(path for paths in selected_paths.values() for path in paths)
+    structured_authority_paths = tuple(path for paths in selected_paths.values() for path in paths)
+    authority_paths = tuple(dict.fromkeys((*structured_authority_paths, *inspected_paths)))
     if conflicts:
         assessments.append(
             DomainAssessment(
@@ -418,78 +534,207 @@ def assess_domains(
             )
         )
     else:
+        structured_authority = bool(tasks or decisions or intents)
         assessments.append(
-            _structured_assessment(
-                authority, authority_paths, explicit_source, "--from explicitly selected the parsed legacy state source."
+            DomainAssessment(
+                authority.domain,
+                authority.requirement,
+                AssessmentStatus.ESTABLISHED
+                if explicit_source and structured_authority
+                else AssessmentStatus.NEEDS_CONFIRMATION,
+                Confidence.INFERRED_HIGH
+                if explicit_source and structured_authority
+                else Confidence.INFERRED_LOW
+                if authority_paths
+                else Confidence.UNKNOWN,
+                authority_paths,
+                not (explicit_source and structured_authority),
+                "--from explicitly selected usable imported state records."
+                if explicit_source and structured_authority
+                else "Inspected candidate sources do not establish which sources govern current truth."
+                if inspected
+                else "Current authority requires confirmation; no usable authority evidence was imported.",
             )
         )
     architecture = definitions["current architecture / domain model"]
-    architecture_sources = _paths_containing(discovery, "architecture", "domain-model", "thesis", "specification")
+    architecture_sources = tuple(source.path for source in inspected if set(source.concepts) & {"architecture", "domain-model"})
+    architecture_established = len(architecture_sources) == 1
     assessments.append(
         DomainAssessment(
             architecture.domain,
             architecture.requirement,
-            AssessmentStatus.NEEDS_CONFIRMATION,
-            Confidence.INFERRED_LOW if architecture_sources else Confidence.UNKNOWN,
+            AssessmentStatus.ESTABLISHED if architecture_established else AssessmentStatus.NEEDS_CONFIRMATION,
+            Confidence.INFERRED_HIGH if architecture_established else Confidence.INFERRED_LOW if architecture_sources else Confidence.UNKNOWN,
             architecture_sources,
-            True,
-            "Architecture-like files were discovered but their semantics were not interpreted."
+            not architecture_established,
+            "One semantically named architecture source was inspected within the adoption budget."
+            if architecture_established
+            else "Bounded inspection found multiple architecture candidates; current authority requires confirmation."
             if architecture_sources
-            else "No current architecture evidence was inspected.",
+            else "No usable current architecture evidence was inspected.",
         )
     )
     decisions_path = selected_paths["DECISIONS.md"]
     constraints = definitions["constraints / invariants"]
+    constraint_sources = decisions_path if decisions else tuple(
+        source.path for source in inspected if set(source.concepts) & {"business-rules", "constraints", "invariants"}
+    )
+    constraints_established = bool(decisions and explicit_source) or len(constraint_sources) == 1
     assessments.append(
         _structured_assessment(
-            constraints, decisions_path if decisions else (), explicit_source, "Parsed governing decisions provide current constraints."
+            constraints,
+            constraint_sources,
+            explicit_source or constraints_established,
+            "Imported decisions or one semantically named constraints source establish current constraints.",
+            constraints_established,
+            "Multiple constraint candidates require authority confirmation." if constraint_sources else "No usable current constraint evidence was inspected.",
         )
     )
-    for domain_name, names, reason in (
-        ("active work", ("TASKS.md", "INTENTS.md"), "Parsed tasks and intent establish current execution state."),
-        ("tasks / dependencies", ("TASKS.md",), "Parsed task records establish current work and dependency edges."),
-        ("blocked / waiting", ("TASKS.md", "INTENTS.md"), "Parsed task and intent records establish blockers and waits."),
-        ("validation / evidence", ("TASKS.md",), "Parsed task validation and evidence fields establish validation state."),
-        ("current governing decisions", ("DECISIONS.md",), "Parsed decision records establish current governing decisions."),
-        ("next action", ("TASKS.md", "INTENTS.md"), "Parsed task and intent records establish the current next action."),
-    ):
-        evidence = tuple(path for name in names for path in selected_paths[name])
-        assessments.append(_structured_assessment(definitions[domain_name], evidence, explicit_source, reason))
+    active_tasks = tuple(task for task in tasks if task.status != "DONE")
+    imported_active_evidence = (
+        (*selected_paths["TASKS.md"], *(task.id for task in active_tasks)) if active_tasks else ()
+    ) + ((*selected_paths["INTENTS.md"], *(intent.subject for intent in intents)) if intents else ())
+    branch_signal = discovery.branch not in {"main", "master", "trunk", "detached HEAD"}
+    plan_sources = tuple(source.path for source in inspected if set(source.concepts) & {"roadmap", "implementation-plan", "current-work"})
+    work_signals = tuple(
+        [f"Git branch: {discovery.branch}"]
+        if branch_signal
+        else []
+    ) + tuple([f"Recent commit: {discovery.recent_commit}"] if discovery.recent_commit else []) + tuple(
+        f"Recent commit file: {path}" for path in discovery.recent_files
+    ) + tuple(f"Changed file: {path}" for path in discovery.changed_files[:8]) + plan_sources
+    composed_work = branch_signal and bool(discovery.recent_commit) and bool(plan_sources)
+    active_format = format_issues.get("INTENTS.md")
+    active_reason = (
+        "Imported active task or intent records establish current execution state."
+        if imported_active_evidence and explicit_source
+        else "Branch, recent commit, and an inspected planning source support a high-confidence current-work hypothesis; confirmation is still required."
+        if composed_work
+        else active_format
+        if active_format
+        else "Repository metadata suggests possible active work, but no active task or intent was established."
+        if work_signals
+        else "No active task or intent was imported; current work requires confirmation."
+    )
+    active_domain = definitions["active work"]
+    assessments.append(
+        DomainAssessment(
+            active_domain.domain,
+            active_domain.requirement,
+            AssessmentStatus.ESTABLISHED if imported_active_evidence and explicit_source else AssessmentStatus.NEEDS_CONFIRMATION,
+            Confidence.INFERRED_HIGH
+            if imported_active_evidence and explicit_source
+            else Confidence.INFERRED_HIGH
+            if composed_work
+            else Confidence.INFERRED_LOW
+            if imported_active_evidence or work_signals
+            else Confidence.UNKNOWN,
+            imported_active_evidence or work_signals,
+            not (imported_active_evidence and explicit_source),
+            active_reason,
+        )
+    )
+    task_evidence = (*selected_paths["TASKS.md"], *(task.id for task in tasks)) if tasks else ()
+    planning_evidence = task_evidence or plan_sources
+    assessments.append(
+        _structured_assessment(
+            definitions["tasks / dependencies"],
+            planning_evidence,
+            explicit_source or bool(plan_sources),
+            "Imported tasks or an inspected roadmap/implementation plan establish the current planning surface.",
+            bool(tasks or plan_sources),
+            format_issues.get("TASKS.md", "No task records or current planning source were inspected; remaining work and dependencies require confirmation."),
+        )
+    )
+    blocker_evidence = task_evidence + ((*selected_paths["INTENTS.md"], *(intent.subject for intent in intents)) if intents else ())
+    assessments.append(
+        _structured_assessment(
+            definitions["blocked / waiting"],
+            blocker_evidence,
+            explicit_source,
+            "Imported task and intent records establish blocker and waiting state.",
+            bool(tasks or intents),
+            "No usable task or intent records establish whether work is blocked or waiting.",
+        )
+    )
+    validated_tasks = tuple(task for task in tasks if task.validation in VALIDATION_LEVELS)
+    validation_evidence = (*selected_paths["TASKS.md"], *(task.id for task in validated_tasks)) if validated_tasks else ()
+    assessments.append(
+        _structured_assessment(
+            definitions["validation / evidence"],
+            validation_evidence,
+            explicit_source,
+            "Imported task records contain usable validation state.",
+            bool(validated_tasks),
+            "No imported task records contain usable validation state or evidence.",
+        )
+    )
+    assessments.append(
+        _structured_assessment(
+            definitions["current governing decisions"],
+            (*decisions_path, *(decision.id for decision in decisions)) if decisions else (),
+            explicit_source,
+            "Imported decision records establish current governing decisions.",
+            bool(decisions),
+            format_issues.get("DECISIONS.md", "No governing decision records were imported; current decisions require confirmation."),
+        )
+    )
+    actionable = eligible_tasks(ProkronState(tasks, decisions, intents, ()))
+    next_evidence = (
+        (*selected_paths["INTENTS.md"], *(intent.subject for intent in intents if intent.next_action))
+        if any(intent.next_action for intent in intents)
+        else ()
+    ) + ((*selected_paths["TASKS.md"], *(task.id for task in actionable)) if actionable else ())
+    assessments.append(
+        _structured_assessment(
+            definitions["next action"],
+            next_evidence,
+            explicit_source,
+            "An imported active intent or eligible task establishes the next action.",
+            bool(next_evidence),
+            "No active intent or actionable imported task establishes a safe next action.",
+        )
+    )
 
     conditional_specs = (
         (
             "production / release restrictions",
-            _files_containing(discovery, "release", "workflow", ".github", "pyproject.toml", "package.json"),
-            ("production", "release", "freeze"),
+            ("production freeze", "release restriction", "must not release"),
         ),
         (
             "deployment state",
-            _files_containing(discovery, "deploy", "docker", "k8s", "kubernetes", "helm", "terraform", "vercel", "netlify"),
-            ("deploy", "production"),
+            ("deployment state", "currently deployed", "production environment"),
         ),
         (
             "human validation gates",
-            tuple(task.id for task in tasks if task.status == "BLOCKED")
-            + tuple(
-                intent.subject
-                for intent in intents
-                if any(word in " ".join(intent.constraints).lower() for word in ("human", "approval", "review"))
-            ),
-            ("human", "approval", "review", "gate"),
+            ("requires human approval", "human validation required", "manual review gate"),
         ),
         (
             "security / destructive-operation constraints",
-            _files_containing(discovery, "migration", "security", "auth", "permission", "secret"),
-            ("security", "destructive", "delete", "migration", "secret"),
+            ("security constraint", "destructive operation", "must not delete", "secret handling"),
         ),
     )
-    for domain_name, surface_evidence, keywords in conditional_specs:
+    for domain_name, keywords in conditional_specs:
         domain = definitions[domain_name]
         decision_matches = tuple(
             decision.id
             for decision in decisions
             if any(keyword in f"{decision.title} {decision.context} {decision.decision}".lower() for keyword in keywords)
         )
+        task_matches = tuple(
+            task.id
+            for task in active_tasks
+            if any(keyword in f"{task.title} {task.acceptance} {task.evidence}".lower() for keyword in keywords)
+        )
+        intent_matches = tuple(
+            intent.subject
+            for intent in intents
+            if any(keyword in f"{' '.join(intent.constraints)} {intent.goal} {intent.next_action}".lower() for keyword in keywords)
+        )
+        inspected_matches = tuple(
+            source.path for source in inspected if any(keyword in source.summary.lower() for keyword in keywords)
+        )
+        surface_evidence = (*decision_matches, *task_matches, *intent_matches, *inspected_matches)
         if not surface_evidence:
             assessments.append(
                 DomainAssessment(
@@ -499,7 +744,7 @@ def assess_domains(
                     Confidence.UNKNOWN,
                     (),
                     False,
-                    "No repository surface made this conditional domain relevant.",
+                    "No inspected or imported evidence made this conditional domain materially relevant.",
                 )
             )
         elif decision_matches and explicit_source:
@@ -552,8 +797,11 @@ def generate_interview_prompts(assessments: tuple[DomainAssessment, ...]) -> tup
     for assessment in assessments:
         if not assessment.blocking:
             continue
-        evidence = ", ".join(assessment.evidence) or "none"
-        context = f"Status={assessment.status}; confidence={assessment.confidence}; evidence={evidence}. {assessment.reason}"
+        evidence = ", ".join(assessment.evidence)
+        context = (
+            f"Status={assessment.status}; confidence={assessment.confidence}; "
+            f"evidence={evidence or 'not yet identified'}. {assessment.reason}"
+        )
         if assessment.domain == "active work":
             question = "Enter `none`, or `TASK_ID | title | owner | dependencies-or-none | current execution point`."
         elif assessment.domain == "tasks / dependencies":
@@ -565,13 +813,23 @@ def generate_interview_prompts(assessments: tuple[DomainAssessment, ...]) -> tup
         elif assessment.domain == "next action":
             question = "State the exact safe next action, or enter `none` when no work is active."
         elif assessment.domain == "current authority":
-            question = f"Priority does not establish authority. Which of these candidates governs now: {evidence}?"
+            question = (
+                f"Does `{assessment.evidence[0]}` govern current project truth? If not, identify the governing source."
+                if len(assessment.evidence) == 1
+                else f"Which inspected source governs current project truth: {evidence}?"
+                if assessment.evidence
+                else "Question objective: identify the source that governs current project truth and the evidence for its authority."
+            )
         elif assessment.domain == "current architecture / domain model":
-            question = f"Core found but did not interpret these candidates: {evidence}. Summarize the architecture that governs now."
+            question = (
+                f"Core inspected these architecture candidates but could not determine current authority: {evidence}. Identify what governs now."
+                if assessment.evidence
+                else "Question objective: identify the current architecture/domain model and its governing source."
+            )
         elif assessment.requirement == Requirement.CONDITIONAL:
             question = f"Confirm the current truth for {assessment.domain}, or enter `not applicable`:"
         else:
-            question = f"Confirm the current truth for {assessment.domain}:"
+            question = f"Question objective: establish {assessment.domain} with a concrete current source or explicit confirmation."
         prompts.append(InterviewPrompt(assessment.domain, context, question))
     return tuple(prompts)
 
@@ -841,34 +1099,41 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
     if candidate.exists():
         raise ProkronError(f"{ADOPTION_DIR} already exists; review or remove the existing candidate first")
     root = _source_root(project, from_path)
+    strict_migration = root is not None
     template_root = files("prokron").joinpath("templates")
     selected: dict[str, Path | None] = {}
     conflicts: list[str] = []
+    incompatibilities: list[str] = []
+    format_issues: dict[str, str] = {}
     for name in ("TASKS.md", "DECISIONS.md", "INTENTS.md"):
         selected[name], conflict = _select(project, root, name)
         if conflict:
-            conflicts.append(conflict)
+            (conflicts if strict_migration else incompatibilities).append(conflict)
     tasks_text, tasks, tasks_error = _read_structured(
         selected["TASKS.md"], template_root.joinpath("TASKS.md").read_text(encoding="utf-8"), parse_tasks
     )
     if tasks_error:
-        conflicts.append(tasks_error)
+        incompatibilities.append(tasks_error)
+        format_issues["TASKS.md"] = tasks_error
     decisions_text, decisions, decisions_error = _read_structured(
         selected["DECISIONS.md"], template_root.joinpath("DECISIONS.md").read_text(encoding="utf-8"), parse_decisions
     )
     if decisions_error:
-        conflicts.append(decisions_error)
+        incompatibilities.append(decisions_error)
+        format_issues["DECISIONS.md"] = decisions_error
     intents_text, intents, intents_error = _read_structured(
         selected["INTENTS.md"], template_root.joinpath("INTENTS.md").read_text(encoding="utf-8"), parse_intents
     )
     if intents_error:
-        conflicts.append(intents_error)
+        incompatibilities.append(intents_error)
+        format_issues["INTENTS.md"] = intents_error
     usable_selected = {
-        "TASKS.md": selected["TASKS.md"] if tasks_error is None else None,
-        "DECISIONS.md": selected["DECISIONS.md"] if decisions_error is None else None,
-        "INTENTS.md": selected["INTENTS.md"] if intents_error is None else None,
+        "TASKS.md": selected["TASKS.md"] if tasks_error is None and tasks else None,
+        "DECISIONS.md": selected["DECISIONS.md"] if decisions_error is None and decisions else None,
+        "INTENTS.md": selected["INTENTS.md"] if intents_error is None and intents else None,
     }
     purpose, purpose_source = _project_purpose(project)
+    inspected = _inspect_current_sources(project, discovery)
     baseline_id = _next_baseline_id(decisions)
     assessments = assess_domains(
         project,
@@ -880,6 +1145,8 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
         decisions,
         intents,
         tuple(conflicts),
+        inspected,
+        format_issues if strict_migration else {},
     )
     prompts = generate_interview_prompts(assessments)
     answers = _answer_prompts(prompts) if interactive else {}
@@ -943,6 +1210,9 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
     )
     source_lines = [source.path for source in discovery.sources]
     inspected_lines = ["Git branch, HEAD, and working-tree metadata"]
+    if discovery.recent_commit:
+        inspected_lines.append(f"Recent commit metadata: {discovery.recent_commit}")
+    inspected_lines.extend(f"{source.path} (bounded text inspection)" for source in inspected)
     if purpose_source:
         inspected_lines.append(f"{purpose_source} (bounded purpose paragraph)")
     for name, error in (("TASKS.md", tasks_error), ("DECISIONS.md", decisions_error), ("INTENTS.md", intents_error)):
@@ -955,11 +1225,28 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
         f"- {domain}: {answer} [{Confidence.CONFIRMED_HUMAN}]" for domain, answer in answers.items() if domain in confirmed_domains
     ]
     selected_confidence = Confidence.INFERRED_HIGH if root is not None else Confidence.INFERRED_LOW
-    inferred_lines = (
+    structured_inferences = (
         [f"- Selected structured state files are candidate current truth until apply. [{selected_confidence}]"]
-        if any(usable_selected.values())
-        else ["- None."]
+        if tasks or decisions or intents
+        else []
     )
+    hypothesis_lines = [
+        f"- `{source.path}` suggests: {source.summary} [{Confidence.INFERRED_LOW}]"
+        for source in inspected
+        if source.path != purpose_source
+    ]
+    if discovery.branch not in {"main", "master", "trunk", "detached HEAD"}:
+        planning = tuple(source.path for source in inspected if set(source.concepts) & {"roadmap", "implementation-plan", "current-work"})
+        confidence = Confidence.INFERRED_HIGH if discovery.recent_commit and planning else Confidence.INFERRED_LOW
+        detail = f", recent commit `{discovery.recent_commit}`, and {', '.join(f'`{path}`' for path in planning)}" if confidence == Confidence.INFERRED_HIGH else ""
+        hypothesis_lines.append(
+            f"- Current-work signal from branch `{discovery.branch}`{detail} requires confirmation. [{confidence}]"
+        )
+    if discovery.changed_files:
+        hypothesis_lines.append(
+            f"- Working-tree changes may indicate active work: {', '.join(discovery.changed_files[:8])}. [{Confidence.INFERRED_LOW}]"
+        )
+    inferred_lines = structured_inferences + hypothesis_lines or ["- None."]
     purpose_value = answers.get("project identity", purpose)
     purpose_confidence = Confidence.CONFIRMED_HUMAN if "project identity" in confirmed_domains else Confidence.INFERRED_HIGH
     blocking_lines = [
@@ -986,6 +1273,9 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
             f"- Imported active intents: {imported_intent_count} [{selected_confidence if usable_selected['INTENTS.md'] else Confidence.UNKNOWN}; source: {usable_selected['INTENTS.md'].relative_to(project).as_posix() if usable_selected['INTENTS.md'] else 'none'}]",
             f"- Human-confirmed active intents: {len(intents) - imported_intent_count} [{Confidence.CONFIRMED_HUMAN if len(intents) > imported_intent_count else Confidence.UNKNOWN}; source: {'developer interview' if len(intents) > imported_intent_count else 'none'}]",
             "",
+            "## Current-state hypotheses",
+            *inferred_lines,
+            "",
             "## Current truth confirmed by human",
             *(human_lines or ["- None."]),
             "",
@@ -995,6 +1285,10 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
             "## Unresolved conflicts",
             *(f"- BLOCKING: {conflict} [{Confidence.CONFLICTING}]" for conflict in conflicts),
             *([] if conflicts else ["- None."]),
+            "",
+            "## Migration / format incompatibilities",
+            *(f"- {'BLOCKING' if strict_migration else 'INFO'}: {issue} [{Confidence.UNKNOWN}]" for issue in incompatibilities),
+            *([] if incompatibilities else ["- None."]),
             "",
             "## Sources discovered",
             *(f"- `{path}`" for path in source_lines),
@@ -1056,6 +1350,10 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
             *(f"- BLOCKING: {conflict} [{Confidence.CONFLICTING}]" for conflict in conflicts),
             *([] if conflicts else ["- None."]),
             "",
+            "## MIGRATION / FORMAT INCOMPATIBILITIES",
+            *(f"- {'BLOCKING' if strict_migration else 'INFO'}: {issue} [{Confidence.UNKNOWN}]" for issue in incompatibilities),
+            *([] if incompatibilities else ["- None."]),
+            "",
             "## HISTORICAL MATERIAL NOT MIGRATED",
             "- Pre-adoption history without a current governing effect was not migrated.",
             "",
@@ -1095,7 +1393,7 @@ def stage_adoption(project: Path, from_path: str | None = None, interactive: boo
     }
     for name, content in outputs.items():
         (candidate / name).write_text(content, encoding="utf-8")
-    return AdoptionResult(discovery, tuple(unknowns), tuple(conflicts))
+    return AdoptionResult(discovery, tuple(unknowns), tuple(conflicts), tuple(incompatibilities))
 
 
 def apply_adoption(project: Path) -> None:
@@ -1113,7 +1411,7 @@ def apply_adoption(project: Path) -> None:
     baseline = (candidate / "BASELINE.md").read_text(encoding="utf-8")
     interview = (candidate / "INTERVIEW.md").read_text(encoding="utf-8")
     if "- BLOCKING:" in report or "- BLOCKING:" in baseline or "- Blocking: yes" in interview:
-        raise ProkronError("adoption candidate has unresolved blocking unknowns or conflicts")
+        raise ProkronError("adoption candidate has unresolved blocking unknowns, conflicts, or format incompatibilities")
     state = ProkronState(
         parse_tasks(candidate / "TASKS.md"),
         parse_decisions(candidate / "DECISIONS.md"),
