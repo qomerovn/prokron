@@ -1,57 +1,77 @@
 # Prokron
 
-Prokron is a way for developers and coding agents to keep a project understandable
-between working sessions. It is Markdown and agent instructions, with no runtime.
+**Project memory for people and coding agents.**
 
-The project chronicle lives in `.prokron/`:
+Prokron keeps project context in a small Markdown chronicle. A new
+person or agent can see what matters, why it matters, and what to do next before
+reading implementation code.
 
-| File | Answers |
+`TASK_GRAPH.md` shows the path forward. `DECISIONS.md` preserves the reasoning
+that shaped it. Four supporting records make each handoff complete:
+
+| Record | Answers |
 |---|---|
-| `TASKS.md` | What work exists? |
-| `TASK_GRAPH.md` | What can happen next? |
-| `DECISIONS.md` | Why is the project shaped this way? |
+| `TASKS.md` | What work exists, and when is it done? |
+| `TASK_GRAPH.md` | What is in flight, ready, or blocked? |
+| `DECISIONS.md` | Why does the project work this way? |
 | `STATE.md` | Where is the project now? |
-| `INTENT.md` | What single task is being worked on? |
-| `JOURNAL.md` | What happened during each session? |
+| `INTENT.md` | What single task is active? |
+| `JOURNAL.md` | What happened, and what happens next? |
 
-Together, the task graph and decision lineage are the project’s execution and
-reasoning spine. A new person or agent should understand the project from the
-chronicle before reading implementation code.
+That is the product: six Markdown files plus instructions for the agent already
+doing the work. There is no runtime or service to operate.
 
-## Two ways to start
+## Add Prokron to a project
 
-1. **New repository:** the agent works with the developer to turn the product
-   specification into tasks and a task graph. Decisions, state, intent, and the
-   journal grow as work proceeds.
-2. **Existing repository:** begin with an empty chronicle. Do not reconstruct old
-   history. Record project truth and decisions from the first Prokron session onward.
+1. Copy [`templates/.prokron`](templates/.prokron) to the project root as
+   `.prokron/`.
+2. Copy [`commands`](commands) to the project root.
+3. Merge the Prokron rules from [`AGENTS.md`](AGENTS.md) into the project's
+   agent instructions.
+4. Add the adapter for each agent you use:
+   - **Codex:** copy [`.agents/skills/prokron`](.agents/skills/prokron).
+   - **Claude Code:** copy [`.claude/commands`](.claude/commands) and add
+     `@AGENTS.md` to the project's `CLAUDE.md`.
 
-Copy [`templates/.prokron`](templates/.prokron) and [`commands`](commands) into
-the project, then merge the relevant agent configuration:
+Merge instruction files instead of replacing project-specific guidance.
 
-- [`AGENTS.md`](AGENTS.md) and [`.agents/skills/prokron`](.agents/skills/prokron)
-  provide the rules and `$prokron` workflow for Codex.
-- [`CLAUDE.md`](CLAUDE.md) and [`.claude/commands`](.claude/commands) provide the
-  same rules and slash commands for Claude Code.
+## Start in one of two modes
 
-## Workflows
+### New repository
 
-| Workflow | Purpose |
-|---|---|
-| `/prokron-init` | Start the chronicle in a new or existing repository |
-| `/prokron-work` | Select or continue one task |
-| `/prokron-decide` | Append or supersede an ADR |
-| `/prokron-checkpoint` | Prepare a clean handoff |
-| `/prokron-resume` | Continue from the chronicle alone |
+Run `/prokron-init new` in Claude Code or `$prokron init new` in Codex. The
+agent works with the developer to turn the product specification into the first
+tasks, dependency graph, decisions, and project state.
 
-The agent updates the chronicle during work and checkpoints automatically when
-its host reports an approaching session, context, five-hour, or seven-day usage
-limit. Hosts that do not expose quota telemetry still checkpoint at meaningful
-milestones and before the session ends.
+### Existing repository
 
-See the [product specification](docs/SPEC.md) and
-[`.prokron/README.md`](.prokron/README.md) for the complete protocol.
+Run `/prokron-init existing` in Claude Code or `$prokron init existing` in
+Codex. The chronicle starts empty and records work from that session onward. It
+does not invent historical tasks or decisions from the repository.
+
+## Work with the chronicle
+
+| Purpose | Claude Code | Codex |
+|---|---|---|
+| Start the chronicle | `/prokron-init [mode]` | `$prokron init [mode]` |
+| Start or continue one task | `/prokron-work [task]` | `$prokron work [task]` |
+| Record a decision | `/prokron-decide` | `$prokron decide` |
+| Prepare a handoff | `/prokron-checkpoint` | `$prokron checkpoint` |
+| Continue from project memory | `/prokron-resume` | `$prokron resume` |
+
+Agents update the chronicle as project truth changes. Decisions and journal
+entries are appended; changed decisions get a new ADR that supersedes the old
+one. `INTENT.md` holds at most one active task.
+
+The agent checkpoints before handoff, interruption, context compaction, or a
+host warning that the five-hour or seven-day usage limit is near. If the host
+does not expose quota status, it checkpoints at meaningful milestones and
+before ending the session.
+
+Read the [specification](docs/SPEC.md) for the complete working agreement and
+the [chronicle guide](.prokron/README.md) for the read order.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE), and [TRADEMARKS.md](TRADEMARKS.md).
+Apache-2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+[TRADEMARKS.md](TRADEMARKS.md).

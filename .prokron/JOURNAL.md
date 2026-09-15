@@ -200,3 +200,12 @@
 - Learned: The K-Ledger handoff confirms that task dependencies, one live intent, decision lineage, current state, and a concise session diary are sufficient for useful human and agent continuity.
 - Left mid-air: Nothing. The working tree is ready for commit.
 - Next: Use the workflow in a real project and refine only from observed friction.
+
+## 2026-09-16 — GitHub documentation rewrite
+- Task: T-DOCS-01
+- Owner: codex/primary
+- Did: Rewrote the README and specification around the six-file chronicle, the two entry modes, exact Claude and Codex commands, automatic checkpoints, and the workflow-only product boundary.
+- Validation: All 10 README links resolve; requirement and repository-shape checks pass; Git reports no changes to LICENSE, NOTICE, or TRADEMARKS.md and no whitespace errors.
+- Learned: The GitHub entry point is clearest when it explains the task graph and decision lineage first, then installation and commands.
+- Left mid-air: Nothing.
+- Next: Use Prokron in a real repository and change the workflow only when observed use reveals friction.

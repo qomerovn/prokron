@@ -149,3 +149,13 @@
 - Acceptance: The repository contains the six-file chronicle template, concise agent instructions, and init, work, decide, checkpoint, and resume workflows without an application runtime.
 - Evidence: New- and existing-repository template smoke checks, README link checks, Codex skill metadata validation, requirement scans, and Git whitespace checks pass; the prospective repository contains no application runtime.
 - Governed by: ADR-008
+
+## T-DOCS-01: Rewrite the GitHub documentation
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-WORKFLOW-01
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: GitHub readers can understand, install, and use the workflow from concise documentation while all Apache-2.0 legal files remain unchanged.
+- Evidence: All 10 README links resolve; required workflow concepts and legal files are present; no runtime paths are tracked; legal files have no diff; Git whitespace checks pass.
+- Governed by: ADR-008
