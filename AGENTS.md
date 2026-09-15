@@ -1,3 +1,5 @@
+<!-- project-prokron:start -->
+
 # Prokron
 
 This repository uses `.prokron/` as its project chronicle. Read
@@ -18,3 +20,5 @@ them. Keep `TASK_GRAPH.md` synchronized with `TASKS.md`.
 Checkpoint without waiting for a request when the host reports an approaching
 session, context, five-hour, or seven-day usage limit. If quota telemetry is not
 available, checkpoint after meaningful milestones and before ending the session.
+
+<!-- project-prokron:end -->

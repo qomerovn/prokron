@@ -21,19 +21,21 @@ that shaped it. Four supporting records make each handoff complete:
 That is the product: six Markdown files plus instructions for the agent already
 doing the work. There is no runtime or service to operate.
 
-## Add Prokron to a project
+## Install with one command
 
-1. Copy [`templates/.prokron`](templates/.prokron) to the project root as
-   `.prokron/`.
-2. Copy [`commands`](commands) to the project root.
-3. Merge the Prokron rules from [`AGENTS.md`](AGENTS.md) into the project's
-   agent instructions.
-4. Add the adapter for each agent you use:
-   - **Codex:** copy [`.agents/skills/prokron`](.agents/skills/prokron).
-   - **Claude Code:** copy [`.claude/commands`](.claude/commands) and add
-     `@AGENTS.md` to the project's `CLAUDE.md`.
+Run one of these from the root of the project that will use Prokron:
 
-Merge instruction files instead of replacing project-specific guidance.
+```sh
+# New repository
+curl -fsSL https://raw.githubusercontent.com/qomerovn/prokron/main/install.sh | sh -s -- new
+
+# Existing repository
+curl -fsSL https://raw.githubusercontent.com/qomerovn/prokron/main/install.sh | sh -s -- existing
+```
+
+The installer adds the chronicle, workflows, and Codex and Claude adapters. It
+preserves an existing `.prokron/` directory and existing project instructions,
+then prints the agent-chat command that starts the selected mode.
 
 ## Start in one of two modes
 

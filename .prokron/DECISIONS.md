@@ -95,3 +95,15 @@
 - Affects: T-WORKFLOW-01
 - Context: Capable agents already understand repositories and can maintain a project chronicle directly. The executable adoption and validation product obscures the useful behavior.
 - Decision: Prokron consists of six Markdown chronicle files, shared agent instructions, and thin host-native command wrappers. New repositories derive their first task graph from a product specification; existing repositories begin with an empty chronicle and accumulate state during normal work. Agents maintain one active intent and checkpoint automatically before session or usage limits.
+
+## ADR-009: Use a disposable shell bootstrap
+- Date: 2026-09-16
+- Status: ACCEPTED
+- Authority: product owner request
+- Supersedes: none
+- Amends: ADR-008
+- Corrects: none
+- Rejects: none
+- Affects: T-INSTALL-01
+- Context: Manual copying makes the first Prokron session harder to start than the workflow itself.
+- Decision: Provide one POSIX shell bootstrap that downloads and copies the static chronicle, workflows, and agent adapters into the current repository. It preserves existing chronicle and project instruction files and does not become an application runtime.

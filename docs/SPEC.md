@@ -59,6 +59,14 @@ work.
 A developer may explicitly request historical reconstruction. It is outside the
 default workflow.
 
+### 3.3 Bootstrap
+
+A single POSIX shell command installs the static chronicle, workflows, and agent
+adapters into the current repository. It accepts `new` or `existing`, preserves
+an existing chronicle and project instructions, and prints the matching command
+to start in the agent chat. The bootstrap is installation tooling, not a
+project runtime.
+
 ## 4. Working lifecycle
 
 ### 4.1 Resume

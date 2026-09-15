@@ -209,3 +209,12 @@
 - Learned: The GitHub entry point is clearest when it explains the task graph and decision lineage first, then installation and commands.
 - Left mid-air: Nothing.
 - Next: Use Prokron in a real repository and change the workflow only when observed use reveals friction.
+
+## 2026-09-16 — one-command bootstrap
+- Task: T-INSTALL-01
+- Owner: codex/primary
+- Did: Added one POSIX shell bootstrap that installs the chronicle, workflows, Codex skill, Claude commands, and managed agent instructions; documented one-line new and existing repository setup.
+- Validation: POSIX syntax and installer smoke checks pass for both modes, all copied assets, repeat installation, state and instruction preservation, and invalid input; documentation links, legal-file preservation, and Git whitespace checks pass.
+- Learned: Installation needs one disposable copier; the working product remains the Markdown chronicle and agent instructions.
+- Left mid-air: Nothing.
+- Next: Run the published curl command from a real target repository and begin with the printed agent command.
