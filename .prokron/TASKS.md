@@ -171,11 +171,11 @@
 - Governed by: ADR-008, ADR-009
 
 ## T-HOSTS-01: Support model-neutral agent hosts
-- Status: WIP
-- Validation: UNTESTED
+- Status: DONE
+- Validation: SYNTHETIC
 - Dependencies: T-INSTALL-01
 - Owner: codex/primary
 - Claimed: 2026-09-16
 - Acceptance: The installer configures OpenCode slash commands and a documented generic path so models such as GLM, MiniMax, Mistral, and Grok can use Prokron through their agent host without provider-specific Prokron logic.
-- Evidence: Pending.
+- Evidence: All five OpenCode command files have valid frontmatter; local installer checks cover every host adapter and generic output; the exact published private-GitHub command installed `AGENTS.md` and all OpenCode commands into a disposable repository; documentation links and Git checks pass.
 - Governed by: ADR-008, ADR-010

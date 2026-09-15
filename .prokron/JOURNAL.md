@@ -236,3 +236,12 @@
 - Learned: `gh api` provides one command for private repositories without adding credentials or a package runtime.
 - Left mid-air: Nothing.
 - Next: Run the existing-repository command in the target project and start with the printed agent-chat command.
+
+## 2026-09-16 — model-neutral agent hosts
+- Task: T-HOSTS-01
+- Owner: codex/primary
+- Did: Added five OpenCode project commands, taught the installer to copy them and print OpenCode and generic-agent starts, and documented how GLM, MiniMax, Mistral, Grok, and other models use Prokron through their agent host.
+- Validation: OpenCode command metadata, local installer behavior, all host assets, generic guidance, documentation links, legal-file preservation, and Git whitespace checks pass; the published private-GitHub installer delivered `AGENTS.md` and all five OpenCode commands to a disposable repository.
+- Learned: Model providers need no Prokron-specific files; host-native commands plus the open `AGENTS.md` convention cover the workflow without coupling project memory to a model.
+- Left mid-air: Nothing.
+- Next: Install Prokron in the target repository, choose any model in its host, and start with the printed command.

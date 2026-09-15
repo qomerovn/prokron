@@ -5,10 +5,10 @@ Maintained with the project chronicle by the working agent.
 ## Current
 - Project: Prokron
 - Tasks: 18
-- Active intents: 1
+- Active intents: 0
 
 ## In flight
-- T-HOSTS-01: Add model-neutral host support and OpenCode commands.
+- None
 
 ## Ready
 - None
@@ -17,10 +17,10 @@ Maintained with the project chronicle by the working agent.
 - None
 
 ## Governing decisions
-- ADR-010: Configure agent hosts, not model providers.
+- None
 
 ## Risks / uncertainty
 - None
 
 ## Next
-- Add and test the OpenCode adapter, generic invocation, installer support, and GitHub documentation.
+- No eligible task.
