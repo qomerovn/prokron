@@ -4,11 +4,11 @@ Maintained with the project chronicle by the working agent.
 
 ## Current
 - Project: Prokron
-- Tasks: 19
-- Active intents: 0
+- Tasks: 20
+- Active intents: 1
 
 ## In flight
-- None
+- T-CONTINUITY-01: Make task, decision, and limit capture automatic.
 
 ## Ready
 - None
@@ -17,10 +17,10 @@ Maintained with the project chronicle by the working agent.
 - None
 
 ## Governing decisions
-- None
+- ADR-008: Prokron is an automatically maintained agent working convention.
 
 ## Risks / uncertainty
 - None
 
 ## Next
-- No eligible task.
+- Strengthen the installed rules and checkpoint workflow, validate every distributed copy, and push `main`.

@@ -84,14 +84,15 @@ repository.
 | Prepare a handoff | `/prokron-checkpoint` | `$prokron checkpoint` |
 | Continue from project memory | `/prokron-resume` | `$prokron resume` |
 
-Agents update the chronicle as project truth changes. Decisions and journal
-entries are appended; changed decisions get a new ADR that supersedes the old
-one. `INTENT.md` holds at most one active task.
+Agents maintain the chronicle automatically. Every new work request becomes a
+task before implementation. Every material choice becomes an ADR as soon as it
+is made or acted on; changed decisions get a new ADR that supersedes the old
+one. `INTENT.md` always identifies the single active task and exact work point.
 
-The agent checkpoints before handoff, interruption, context compaction, or a
-host warning that the five-hour or seven-day usage limit is near. If the host
-does not expose quota status, it checkpoints at meaningful milestones and
-before ending the session.
+The agent checkpoints before handoff, interruption, compaction, or any known or
+estimated context, token, time, session, rate, or quota limit. If the host does
+not expose a meter, it checkpoints after meaningful milestones, before
+long-running work, and before ending the session.
 
 Read the [specification](docs/SPEC.md) for the complete working agreement and
 the [chronicle guide](.prokron/README.md) for the read order.

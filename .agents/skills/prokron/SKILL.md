@@ -10,6 +10,11 @@ Read `.prokron/README.md`. Interpret the first argument as `init`, `work`,
 `commands/prokron-<argument>.md` workflow. For `work`, pass remaining arguments
 through as the requested task.
 
-Maintain the chronicle during work. Checkpoint automatically before a handoff,
-context compaction, session ending, or host warning that the five-hour or
-seven-day usage limit is near.
+Maintain the chronicle without waiting for an explicit Prokron request. Create
+or claim every new task before implementation and append an ADR as soon as a
+material decision is made or acted on. Keep the single intent at the exact
+execution point.
+
+Checkpoint automatically before a handoff, compaction, session ending, or any
+known or estimated context, token, time, rate, or quota limit. Without telemetry,
+checkpoint after meaningful milestones and before long-running work.

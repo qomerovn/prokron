@@ -20,6 +20,12 @@ for command in init work decide checkpoint resume; do
 done
 grep -Fq '# Keep agent rules' "$fixture/AGENTS.md"
 grep -Fq '# Keep Claude rules' "$fixture/CLAUDE.md"
+grep -Fq 'do not wait for a Prokron command' "$fixture/AGENTS.md"
+grep -Fq 'context, token, time, session, rate, or quota limit' "$fixture/AGENTS.md"
+grep -Fq 'Record every new work request as a task before implementation' \
+  "$fixture/.prokron/README.md"
+grep -Fq 'Append an ADR as soon as a material choice is made' \
+  "$fixture/.prokron/README.md"
 grep -Fq '$prokron init existing' "$fixture/output"
 grep -Fq '/prokron-init existing' "$fixture/output"
 grep -Fq 'commands/prokron-init.md in existing mode' "$fixture/output"

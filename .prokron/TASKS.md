@@ -189,3 +189,13 @@
 - Acceptance: The repository has no CodeGraph index, ignore rule, or active product configuration.
 - Evidence: CodeGraph `uninit` removed `.codegraph/`; the ignore rule is gone; product files contain no CodeGraph reference; Git checks pass.
 - Governed by: ADR-008
+
+## T-CONTINUITY-01: Make task, decision, and limit capture automatic
+- Status: WIP
+- Validation: UNTESTED
+- Dependencies: T-CLEANUP-01
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: Installed agent rules require immediate task and ADR capture without an explicit Prokron command and require a resumable checkpoint before any known or estimated agent, context, time, or quota cutoff.
+- Evidence: Pending.
+- Governed by: ADR-008

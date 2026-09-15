@@ -85,9 +85,10 @@ after the chronicle points to the relevant work.
 
 ### 4.2 Work
 
-Create a task if the request has none. Work on one task at a time. Mark it
-`WIP`, record its owner and claim date, and overwrite `INTENT.md` with the exact
-execution point.
+Create a task immediately when new work appears if the request has none; do not
+wait for a Prokron command. Work on one task at a time. Mark it `WIP`, record its
+owner and claim date, and overwrite `INTENT.md` with the exact execution point.
+Refresh intent after meaningful progress and before long-running work.
 
 Update the chronicle whenever project truth changes. `DONE` means the acceptance
 condition is met and evidence is recorded. Validation is separate and uses one
@@ -102,9 +103,11 @@ Only a named human may record `HUMAN_VERIFIED`.
 
 ### 4.3 Decide
 
-Append an ADR with its date, authority, context, decision, consequences,
-affected tasks, and any decision it supersedes. Never edit or delete an earlier
-ADR to change its meaning. Follow the supersession chain for the current rule.
+As soon as a material choice is made, accepted, or acted on, append an ADR with
+its date, authority, context, decision, consequences, affected tasks, and any
+decision it supersedes. Do not wait for a Prokron command. Never edit or delete
+an earlier ADR to change its meaning. Follow the supersession chain for the
+current rule.
 
 ### 4.4 Checkpoint
 
@@ -118,17 +121,20 @@ Before another person or agent takes over:
 
 ## 5. Automatic continuity
 
-Chronicle maintenance happens during work. The agent checkpoints without
-waiting for the developer when the host reports that:
+Chronicle maintenance happens during work. The agent checkpoints early enough
+to finish writing, without waiting for the developer, when the agent or host
+reports or estimates that:
 
-- the five-hour usage window is nearly exhausted;
-- the seven-day usage window is nearly exhausted;
+- any context, input, output, or token budget is nearly exhausted;
+- any time, session, rate, or quota window is nearly exhausted, including
+  five-hour and seven-day windows;
 - context compaction is approaching; or
 - the session is stopping, pausing, or handing off.
 
 Agent instructions cannot read quota counters that the host does not expose.
-Without a host signal, the agent checkpoints after meaningful milestones and
-before ending so an abrupt cutoff loses little project state.
+Without a host signal, the agent checkpoints after meaningful milestones,
+before long-running work, and before ending so an abrupt cutoff loses little
+project state.
 
 ## 6. Commands
 

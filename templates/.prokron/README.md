@@ -25,33 +25,36 @@ now. It should explain the project before anyone reads implementation code.
 
 ## Working rules
 
-1. Work on one task at a time. Mark it `WIP`, record owner and claim date, and
-   put the exact execution point in `INTENT.md`.
-2. Hard dependencies come from `TASKS.md`. Label suggested ordering as a
+1. Record every new work request as a task before implementation without waiting
+   for a Prokron command.
+2. Work on one task at a time. Mark it `WIP`, record owner and claim date, and
+   keep the exact execution point in `INTENT.md`.
+3. Hard dependencies come from `TASKS.md`. Label suggested ordering as a
    suggestion; do not silently turn it into a dependency.
-3. Mark a task `DONE` only when its acceptance condition is met and its evidence
+4. Mark a task `DONE` only when its acceptance condition is met and its evidence
    is recorded. Keep completion status separate from validation strength:
    `UNTESTED`, `SYNTHETIC`, `AI_REVIEWED`, or `HUMAN_VERIFIED`.
-4. Only a named human may record `HUMAN_VERIFIED`.
-5. When a decision changes, append a new ADR that supersedes the earlier ADR.
-   Preserve the old entry.
-6. Append a journal entry before leaving work mid-air. `Left mid-air` and
+5. Only a named human may record `HUMAN_VERIFIED`.
+6. Append an ADR as soon as a material choice is made, accepted, or acted on.
+   When a decision changes, supersede the earlier ADR and preserve it.
+7. Append a journal entry before leaving work mid-air. `Left mid-air` and
    `Next` must be explicit even when the answer is “nothing.”
-7. Keep entries concise. Put product rules in the specification and durable
+8. Keep entries concise. Put product rules in the specification and durable
    implementation choices in ADRs, not in the session diary.
 
 ## Checkpoint trigger
 
-Update the chronicle while working. Before a handoff, interruption, context
-compaction, or host warning that a five-hour or seven-day usage limit is near:
+Update the chronicle while working. Early enough to finish writing, checkpoint
+before a handoff, interruption, compaction, or any known or estimated agent or
+host context, token, time, session, rate, or quota limit:
 
 1. update task status, validation, evidence, and governing ADRs;
 2. synchronize the task graph and state;
 3. update or clear the single intent;
 4. append a journal entry with the exact next action.
 
-If the host cannot report quota usage, checkpoint after meaningful milestones
-and before ending. Do not wait until the last message.
+If the host cannot report its limits, checkpoint after meaningful milestones,
+before long-running work, and before ending. Do not wait until the last message.
 
 ## Entry modes
 
