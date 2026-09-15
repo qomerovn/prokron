@@ -107,5 +107,15 @@
 - Owner: codex/primary
 - Claimed: 2026-09-16
 - Acceptance: Adoption provides a guided resumable interview, provider-neutral structured question and answer primitives, evidence-backed human confirmation, and guarded materialization without weakening non-interactive adoption.
-- Evidence: Ruff, strict mypy, 49 unittests, wheel/sdist build, installed-wheel non-interactive and interactive adoption, apply and doctor smoke tests, K-Ledger six-question dogfood, and Git diff check passed on 2026-09-16.
+- Evidence: Ruff, strict mypy, 49 unittests, wheel/sdist build, installed-wheel non-interactive and interactive adoption, apply and doctor smoke tests, K-Ledger six-question dogfood, and Git diff check passed; commit cb65c19 was pushed to origin/main on 2026-09-16.
 - Governed by: ADR-001, ADR-005
+
+## T-V02-04: Consolidate the current-state adoption review
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-V02-03
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: A six-blocker adoption presents one default-preserving current-state proposal, supports selective correction, keeps agent adapters conversational and thin, and preserves structured Core validation, provenance, resume, and apply behavior.
+- Evidence: Ruff, strict mypy, 51 unittests, wheel/sdist build, installed-wheel K-Ledger grouped-confirmation and apply smoke tests, Prokron doctor, and Git diff check passed on 2026-09-16.
+- Governed by: ADR-005

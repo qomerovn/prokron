@@ -19,9 +19,10 @@ implementation-evidence discovery without writing files. A normal run stages a
 reviewable candidate under `.prokron-adoption/`; `--from DIR` prefers structured
 legacy `TASKS.md`, `DECISIONS.md`, and `INTENTS.md` from that directory.
 
-`--interactive` evaluates a fixed coverage schema, then presents a guided quiz
-only for blocking evidence gaps. Answers are persisted after each question, so a
-later interactive run resumes without asking confirmed questions again.
+`--interactive` evaluates a fixed coverage schema, then presents related
+current-state gaps as one proposal. Press Enter to accept supported defaults,
+edit only incorrect items, review uncertainties, or leave the proposal
+unresolved. Answers are persisted so later runs retain confirmed state.
 `INTERVIEW.md` is the generated audit record; it is not edited by users or agents.
 `--questions-json` retrieves unresolved structured items and `--answer-json`
 records one structured answer through Core. Core does not call a model provider.

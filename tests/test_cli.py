@@ -276,15 +276,19 @@ class ProkronCLITest(unittest.TestCase):
             project = Path(temporary)
             self.make_interview_fixture(project)
 
-            interrupted = self.run_cli(project, "adopt", "--interactive", input_text="1\n")
-            self.assertEqual(interrupted.returncode, 2)
-            self.assertIn("interactive input ended", interrupted.stderr)
+            interrupted = self.run_cli(
+                project,
+                "adopt",
+                "--answer-json",
+                '{"domain":"active work","mode":"confirm"}',
+            )
+            self.assertEqual(interrupted.returncode, 0, interrupted.stderr)
             stored = json.loads((project / ".prokron-adoption" / "ANSWERS.json").read_text(encoding="utf-8"))
             self.assertEqual(stored["answers"]["active work"]["confidence"], "CONFIRMED_HUMAN")
             self.assertEqual(stored["answers"]["active work"]["source"], "adoption interview")
             self.assertIn("confirmation_timestamp", stored["answers"]["active work"])
 
-            resumed = self.run_cli(project, "adopt", "--interactive", input_text="1\n1\n1\n\n1\n1\n")
+            resumed = self.run_cli(project, "adopt", "--interactive", input_text="\n")
             self.assertEqual(resumed.returncode, 0, resumed.stderr)
             self.assertIn("1 confirmations already recorded.", resumed.stdout)
             self.assertNotIn("[1/5] Active Work", resumed.stdout)
@@ -308,6 +312,47 @@ class ProkronCLITest(unittest.TestCase):
             self.assertIn("- Confidence: CONFIRMED_HUMAN", blocked)
             self.assertNotIn("- BLOCKING:", report)
 
+    def test_interactive_adoption_accepts_grouped_current_state_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            self.make_interview_fixture(project)
+
+            adopted = self.run_cli(project, "adopt", "--interactive", input_text="\n")
+
+            self.assertEqual(adopted.returncode, 0, adopted.stderr)
+            self.assertIn("Current-state proposal", adopted.stdout)
+            self.assertIn("Accept all supported/inferred values", adopted.stdout)
+            self.assertIn("0 blocking confirmations remain.", adopted.stdout)
+            candidate = project / ".prokron-adoption"
+            task_text = (candidate / "TASKS.md").read_text(encoding="utf-8")
+            intent_text = (candidate / "INTENTS.md").read_text(encoding="utf-8")
+            self.assertIn("## T-M6-02: GRNI", task_text)
+            self.assertIn("- Owner: developer", task_text)
+            self.assertNotIn("adoption/interview", task_text)
+            self.assertIn("- Current point: Work on branch T-M6-02-grni", intent_text)
+            stored = json.loads((candidate / "ANSWERS.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(stored["answers"]), 6)
+            self.assertEqual({item["confidence"] for item in stored["answers"].values()}, {"CONFIRMED_HUMAN"})
+
+    def test_grouped_edit_preserves_inferred_task_identity_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            self.make_interview_fixture(project)
+
+            adopted = self.run_cli(
+                project,
+                "adopt",
+                "--interactive",
+                input_text="2\n1\n\n\n\nImplement the current branch changes.\n",
+            )
+
+            self.assertEqual(adopted.returncode, 0, adopted.stderr)
+            task_text = (project / ".prokron-adoption" / "TASKS.md").read_text(encoding="utf-8")
+            intent_text = (project / ".prokron-adoption" / "INTENTS.md").read_text(encoding="utf-8")
+            self.assertIn("## T-M6-02: GRNI", task_text)
+            self.assertIn("- Owner: developer", task_text)
+            self.assertIn("- Current point: Implement the current branch changes.", intent_text)
+
     def test_agent_question_and_answer_primitives_recompute_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             project = Path(temporary)
@@ -320,6 +365,9 @@ class ProkronCLITest(unittest.TestCase):
             active = next(item for item in items if item["domain"] == "active work")
             self.assertEqual(active["confidence"], "INFERRED_HIGH")
             self.assertEqual(active["hypothesis"]["task_id"], "T-M6-02")
+            self.assertEqual(active["hypothesis"]["owner"], "developer")
+            self.assertEqual(active["hypothesis"]["current_point"], "Work on branch T-M6-02-grni")
+            self.assertIn("Recent commit: Start GRNI", active["evidence"])
             self.assertIn("allowed_answer_modes", active)
 
             answered = self.run_cli(

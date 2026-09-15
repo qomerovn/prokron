@@ -107,3 +107,21 @@
 - Learned: A generated interview report is useful audit evidence, while stable structured primitives are the safer interface for both humans and agents.
 - Left mid-air: The validated implementation and documentation remain uncommitted as requested.
 - Next: Review the diff and commit only when explicitly approved.
+
+## 2026-09-15T17:51:16Z — T-V02-03
+- Task: T-V02-03
+- Owner: codex/primary
+- Did: Committed the interactive adoption interview as cb65c19 and pushed it to origin/main.
+- Validation: The push advanced origin/main from b37a29f to cb65c19; the worktree was clean immediately afterward.
+- Learned: Publication completed without changing the validated implementation.
+- Left mid-air: Only this Prokron continuity update remains uncommitted.
+- Next: Begin new work from the current clean implementation baseline; commit this state reconciliation when approved.
+
+## 2026-09-15T18:03:04Z — T-V02-04
+- Task: T-V02-04
+- Owner: codex/primary
+- Did: Replaced six current-state forms with one default-preserving proposal, made selective active-work edits retain inferred identity fields, removed adoption/interview ownership, separated recent commit evidence from execution point, and tightened agent adapter guidance.
+- Validation: Ruff, strict mypy, 51 unittests, wheel/sdist build, installed-wheel K-Ledger grouped-confirmation and apply smoke tests, Prokron doctor, and Git diff check pass.
+- Learned: Conservative defaults let one explicit human confirmation establish several related domains without moving validation or authority into adapters.
+- Left mid-air: The validated UX refinement and its Prokron checkpoint remain uncommitted as requested.
+- Next: Review the grouped K-Ledger interaction and commit only when explicitly approved.

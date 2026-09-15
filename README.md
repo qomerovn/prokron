@@ -43,7 +43,7 @@ Use `prokron adopt --dry-run` to inspect an existing project without changing it
 `prokron adopt` stages an auditable candidate under `.prokron-adoption/`; review
 and resolve its blocking unknowns or conflicts before `prokron adopt --apply`
 promotes it to canonical state. Use `--from handoff/` for structured legacy state
-and `--interactive` for a guided evidence-driven interview. `INTERVIEW.md` is the
+and `--interactive` for a grouped evidence-driven review. `INTERVIEW.md` is the
 generated audit record, not an input form. Agents can retrieve unresolved items
 with `--questions-json` and submit answers with `--answer-json`. Confirmed active
 execution is written to candidate `TASKS.md` and `INTENTS.md`; historical tasks

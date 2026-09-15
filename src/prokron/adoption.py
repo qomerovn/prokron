@@ -907,14 +907,13 @@ def generate_interview_prompts(
         if assessment.domain == "active work":
             branch = next((item.removeprefix("Git branch: ") for item in assessment.evidence if item.startswith("Git branch: ")), "")
             match = re.match(r"^(T-[A-Za-z0-9]+-\d+)[-_/](.+)$", branch)
-            recent = next((item.removeprefix("Recent commit: ") for item in assessment.evidence if item.startswith("Recent commit: ")), "")
             if match:
                 title = match.group(2).replace("-", " ")
                 hypothesis = (
                     ("task_id", match.group(1)),
                     ("title", title.upper() if len(title) <= 12 else title.title()),
-                    ("owner", "adoption/interview"),
-                    ("current_point", recent or f"Work on branch {branch}"),
+                    ("owner", "developer"),
+                    ("current_point", f"Work on branch {branch}"),
                 )
         elif assessment.domain == "next action" and suggested_next_action:
             hypothesis = (("next_action", suggested_next_action),)
@@ -943,14 +942,101 @@ def _ask(label: str) -> str:
         raise ProkronError("interactive input ended before the interview completed; rerun `prokron adopt --interactive`") from error
 
 
-def _choose(options: tuple[str, ...]) -> int:
+def _choose(options: tuple[str, ...], default: int | None = None) -> int:
     while True:
         for index, option in enumerate(options, 1):
             print(f"  {index}. {option}")
         value = _ask("> ")
+        if not value and default is not None:
+            return default
         if value.isdigit() and 1 <= int(value) <= len(options):
             return int(value)
         print(f"Choose 1-{len(options)}.")
+
+
+def _ask_default(label: str, default: str) -> str:
+    return _ask(f"{label} [{default}]: ") or default
+
+
+def _default_answer(prompt: InterviewPrompt) -> object | None:
+    hypothesis = dict(prompt.hypothesis)
+    if prompt.domain == "active work" and hypothesis:
+        return {"mode": "confirm"}
+    if prompt.domain == "tasks / dependencies":
+        return {"mode": "no_dependencies"}
+    if prompt.domain == "blocked / waiting":
+        return {"mode": "no"}
+    if prompt.domain == "validation / evidence":
+        return {"mode": "UNTESTED", "evidence": "No usable validation evidence detected during adoption."}
+    if prompt.domain == "current governing decisions":
+        return {"mode": "none"}
+    if prompt.domain == "next action" and hypothesis.get("next_action"):
+        return {"mode": "accept", "next_action": hypothesis["next_action"]}
+    return None
+
+
+def _edit_active_work(prompt: InterviewPrompt) -> dict[str, str]:
+    hypothesis = dict(prompt.hypothesis)
+    return {
+        "mode": "edit",
+        "task_id": _ask_default("Task ID", hypothesis.get("task_id", "")),
+        "title": _ask_default("Title", hypothesis.get("title", "")),
+        "owner": _ask_default("Owner", hypothesis.get("owner", "developer")),
+        "current_point": _ask_default("Current execution point", hypothesis.get("current_point", "")),
+    }
+
+
+def _grouped_current_state_answer(
+    prompts: tuple[InterviewPrompt, ...], active_prompt: InterviewPrompt
+) -> dict[str, object]:
+    by_domain = {prompt.domain: prompt for prompt in prompts}
+    active = dict(active_prompt.hypothesis)
+    next_action = dict(by_domain.get("next action", InterviewPrompt("", "", "")).hypothesis).get("next_action", "unknown")
+    print("\nCurrent-state proposal\n")
+    print(f"Active work:\n  {active.get('task_id', 'unknown')} — {active.get('title', 'unknown')}")
+    print(f"Owner:\n  {active.get('owner', 'unknown')}")
+    print(f"Current execution point:\n  {active.get('current_point', 'unknown')}")
+    print("Dependencies:\n  none detected")
+    print("Blocked or waiting:\n  no evidence detected")
+    print("Validation:\n  UNTESTED — no usable validation evidence detected")
+    print(f"Next safe action:\n  {next_action}")
+    print("Governing decisions:\n  no additional governing decision detected\n")
+    choice = _choose(
+        (
+            "Accept all supported/inferred values",
+            "Edit specific items",
+            "Review uncertainties only",
+            "Leave unresolved",
+        ),
+        default=1,
+    )
+    defaults = {prompt.domain: answer for prompt in prompts if (answer := _default_answer(prompt)) is not None}
+    if choice == 1:
+        return defaults
+    if choice == 4:
+        return {}
+    if choice == 2:
+        for index, prompt in enumerate(prompts, 1):
+            print(f"  {index}. {prompt.domain}")
+        selected = _ask("Items to edit (comma-separated numbers; Enter keeps all defaults): ")
+        if not selected:
+            return defaults
+        try:
+            indexes = {int(value.strip()) for value in selected.split(",")}
+        except ValueError as error:
+            raise ProkronError("items to edit must be comma-separated numbers") from error
+        if not indexes or any(index < 1 or index > len(prompts) for index in indexes):
+            raise ProkronError(f"items to edit must be between 1 and {len(prompts)}")
+        targets = tuple(prompt for index, prompt in enumerate(prompts, 1) if index in indexes)
+    else:
+        targets = tuple(prompt for prompt in prompts if not prompt.hypothesis)
+    for prompt in targets:
+        answer = _edit_active_work(prompt) if prompt.domain == "active work" else _interactive_answer(prompt, {})
+        if answer is None:
+            defaults.pop(prompt.domain, None)
+        else:
+            defaults[prompt.domain] = answer
+    return defaults
 
 
 def _interactive_answer(prompt: InterviewPrompt, known: dict[str, object]) -> object | None:
@@ -974,13 +1060,7 @@ def _interactive_answer(prompt: InterviewPrompt, known: dict[str, object]) -> ob
         if hypothesis and choice == 1:
             return {"mode": "confirm"}
         if (hypothesis and choice == 2) or (not hypothesis and choice == 1):
-            return {
-                "mode": "edit",
-                "task_id": _ask("Task ID: "),
-                "title": _ask("Title: "),
-                "owner": _ask("Owner [adoption/interview]: ") or "adoption/interview",
-                "current_point": _ask("Current execution point: "),
-            }
+            return _edit_active_work(prompt)
         if (hypothesis and choice == 3) or (not hypothesis and choice == 2):
             return {"mode": "no_active_work"}
         return None
@@ -1050,8 +1130,10 @@ def _canonical_answer(prompt: InterviewPrompt, answer: object) -> str:
             return "none"
         if mode not in {"confirm", "edit"}:
             raise ProkronError("active work answer mode must be confirm, edit, or no_active_work")
-        values = hypothesis if mode == "confirm" else {key: str(answer.get(key, "")) for key in hypothesis or ("task_id", "title", "owner", "current_point")}
-        fields = (values.get("task_id", ""), values.get("title", ""), values.get("owner", "adoption/interview"), values.get("current_point", ""))
+        values = dict(hypothesis)
+        if mode == "edit":
+            values.update({key: str(value).strip() for key, value in answer.items() if key != "mode" and str(value).strip()})
+        fields = (values.get("task_id", ""), values.get("title", ""), values.get("owner", "developer"), values.get("current_point", ""))
         if not all(fields):
             raise ProkronError("active work requires task_id, title, owner, and current_point")
         return " | ".join((*fields[:3], "none", fields[3]))
@@ -1587,7 +1669,31 @@ def stage_adoption(
         print(f"Prokron found {len(prompts)} confirmations required before adoption.")
         print(f"{len(answer_records)} confirmations already recorded.")
         known: dict[str, object] = {"suggested_next_action": suggested_next_action}
-        for index, prompt in enumerate(remaining, 1):
+        current_state_domains = {
+            "active work",
+            "tasks / dependencies",
+            "blocked / waiting",
+            "validation / evidence",
+            "current governing decisions",
+            "next action",
+        }
+        grouped = tuple(prompt for prompt in remaining if prompt.domain in current_state_domains)
+        grouped_domains: set[str] = set()
+        active_prompt = by_domain.get("active work")
+        if len(grouped) > 1 and active_prompt is not None and active_prompt.hypothesis:
+            grouped_domains = {prompt.domain for prompt in grouped}
+            try:
+                grouped_answers = _grouped_current_state_answer(grouped, active_prompt)
+            except KeyboardInterrupt:
+                print("\nInterview paused; recorded answers were preserved.")
+                grouped_answers = {}
+            for prompt in grouped:
+                if prompt.domain in grouped_answers:
+                    answer_records[prompt.domain] = _record_answer(prompt, grouped_answers[prompt.domain])
+            if grouped_answers:
+                _save_answer_store(candidate, fingerprint, from_path, answer_records)
+        ungrouped = tuple(prompt for prompt in remaining if prompt.domain not in grouped_domains)
+        for index, prompt in enumerate(ungrouped, 1):
             print(f"\n[{index}/{len(remaining)}] {prompt.domain.title()}\n")
             try:
                 answer = _interactive_answer(prompt, known)
