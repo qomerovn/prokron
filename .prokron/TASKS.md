@@ -191,11 +191,11 @@
 - Governed by: ADR-008
 
 ## T-CONTINUITY-01: Make task, decision, and limit capture automatic
-- Status: WIP
-- Validation: UNTESTED
+- Status: DONE
+- Validation: SYNTHETIC
 - Dependencies: T-CLEANUP-01
 - Owner: codex/primary
 - Claimed: 2026-09-16
 - Acceptance: Installed agent rules require immediate task and ADR capture without an explicit Prokron command and require a resumable checkpoint before any known or estimated agent, context, time, or quota cutoff.
-- Evidence: Pending.
+- Evidence: Local installer checks and the exact published private-GitHub install confirm that fresh repositories receive automatic pre-implementation task capture, immediate material-decision ADR capture, and early checkpoint rules for known or estimated context, token, time, session, rate, and quota limits.
 - Governed by: ADR-008

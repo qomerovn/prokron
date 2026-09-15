@@ -254,3 +254,12 @@
 - Learned: The Markdown workflow needs no repository code index.
 - Left mid-air: Nothing in the repository. The shared global CodeGraph installation remains outside project scope.
 - Next: Open the clean repository and use the Prokron workflow directly.
+
+## 2026-09-16 — automatic continuity guarantees
+- Task: T-CONTINUITY-01
+- Owner: codex/primary
+- Did: Made task creation, material-decision ADR capture, exact intent maintenance, and pre-limit checkpointing automatic across shared agent rules, the Codex skill, portable workflows, chronicle templates, and public documentation.
+- Validation: Local installer checks and the published private-GitHub installer confirm that a fresh repository receives all automatic triggers; documentation links, legal-file preservation, and Git whitespace checks pass.
+- Learned: Continuity rules must fire on work events and agent limits, independent of whether the developer invokes a Prokron command.
+- Left mid-air: Nothing.
+- Next: Let the installed agent maintain the chronicle during normal work; use manual commands only when an explicit workflow is useful.
