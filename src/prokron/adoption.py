@@ -18,6 +18,9 @@ from .rendering import sync_derived
 ADOPTION_DIR = ".prokron-adoption"
 BASELINE_TITLE = "Adoption baseline"
 Parsed = TypeVar("Parsed")
+ARCHIVE_MARKERS = {"archive", "_archive", "archived", "old", "deprecated", "superseded"}
+IMPLEMENTATION_DIRS = {"src", "lib", "app", "tests", "test", "migrations", ".github", ".circleci", "examples"}
+LEGACY_STATE_DIRS = {"handoff", "project-state"}
 
 
 class SourceClassification(StrEnum):
@@ -136,7 +139,20 @@ def _git_optional(project: Path, *args: str) -> str | None:
 
 
 def _repository_files(project: Path) -> tuple[PurePosixPath, ...]:
-    skipped = {".git", ADOPTION_DIR, ".venv", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
+    skipped = {
+        ".git",
+        ADOPTION_DIR,
+        ".venv",
+        "node_modules",
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".artifacts",
+        "artifacts",
+        "build",
+        "dist",
+    }
     paths = [
         PurePosixPath(path.relative_to(project).as_posix())
         for path in project.rglob("*")
@@ -145,14 +161,22 @@ def _repository_files(project: Path) -> tuple[PurePosixPath, ...]:
     return tuple(sorted(paths, key=str))
 
 
+def _implementation_directory(path: PurePosixPath) -> PurePosixPath | None:
+    for index, part in enumerate(path.parts[:-1]):
+        if part.lower() in IMPLEMENTATION_DIRS:
+            return PurePosixPath(*path.parts[: index + 1])
+    return None
+
+
 def classify_source(path: PurePosixPath) -> Source | None:
     text = path.as_posix()
-    lower = text.lower()
     name = path.name.lower()
     parts = {part.lower() for part in path.parts}
     stem = path.stem.lower()
     state_prefixes = ("tasks", "state", "intent", "decisions", "adr", "journal", "roadmap", "product-thesis", "implementation-plan")
-    implementation_roots = {"src", "lib", "app", "tests", "test", "migrations", ".github", ".circleci", "examples"}
+    archive_parts = {part.lower() for part in path.parts[:-1]}
+    archive_name_tokens = set(filter(None, re.split(r"[^a-z0-9]+", stem)))
+    is_document = path.suffix.lower() in {".md", ".txt", ".rst", ".adoc"} or (not path.suffix and not name.startswith("."))
     manifests = {
         "pyproject.toml",
         "setup.py",
@@ -169,20 +193,22 @@ def classify_source(path: PurePosixPath) -> Source | None:
     if path.parts and path.parts[0] == ".prokron":
         classification = SourceClassification.DERIVED if name in {"state.md", "task_graph.md"} else SourceClassification.CURRENT_CANONICAL
         return Source(text, 1, classification, "existing Prokron state")
-    if any(token in lower for token in ("/archive/", "old-", "deprecated", "superseded")):
+    if archive_parts & ARCHIVE_MARKERS or archive_name_tokens & ARCHIVE_MARKERS:
         return Source(
             text,
-            1 if parts & {"handoff", "project-state"} else 2,
+            1 if parts & LEGACY_STATE_DIRS else 2,
             SourceClassification.STALE_OR_CONFLICTING,
             "name indicates stale or archived material",
         )
-    if path.parts and (path.parts[0].lower() in implementation_roots or name in manifests | ci_files):
+    if _implementation_directory(path) is not None or name in manifests | ci_files:
         return Source(text, 3, SourceClassification.IMPLEMENTATION_EVIDENCE, "implementation or build evidence")
+    if not is_document:
+        return None
     if name in {"state.md", "task_graph.md"} or "dependencies" in name:
         return Source(text, 1, SourceClassification.DERIVED, "state projection; evidence only")
     if name == "journal.md" or name.startswith("changelog") or "history" in name:
         return Source(text, 1, SourceClassification.HISTORICAL, "historical record")
-    if parts & {"handoff", "project-state"} or stem.startswith(state_prefixes):
+    if parts & LEGACY_STATE_DIRS or stem.startswith(state_prefixes):
         return Source(text, 1, SourceClassification.CURRENT_SUPPORTING, "explicit project-state candidate; authority requires review")
     document_names = ("architecture", "domain-model", "requirements", "specification")
     if (
@@ -191,21 +217,20 @@ def classify_source(path: PurePosixPath) -> Source | None:
         or parts & {"docs", "architecture", "specifications"}
     ):
         return Source(text, 2, SourceClassification.CURRENT_SUPPORTING, "project documentation")
-    if path.suffix.lower() in {".md", ".txt", ".rst"}:
+    if path.suffix.lower() in {".md", ".txt", ".rst", ".adoc"}:
         return Source(text, 2, SourceClassification.UNKNOWN, "unclassified text source")
     return None
 
 
 def _classified_sources(paths: tuple[PurePosixPath, ...]) -> tuple[Source, ...]:
     sources: dict[str, Source] = {}
-    grouped_roots = {"src", "lib", "app", "tests", "test", "migrations", ".github", ".circleci", "examples"}
     for path in paths:
         source = classify_source(path)
         if source is None:
             continue
-        first = path.parts[0].lower() if path.parts else ""
-        if source.classification == SourceClassification.IMPLEMENTATION_EVIDENCE and first in grouped_roots:
-            display = f"{path.parts[0]}/"
+        implementation_directory = _implementation_directory(path)
+        if source.classification == SourceClassification.IMPLEMENTATION_EVIDENCE and implementation_directory is not None:
+            display = f"{implementation_directory.as_posix()}/"
             source = Source(display, 3, SourceClassification.IMPLEMENTATION_EVIDENCE, "implementation evidence directory")
         sources[source.path] = source
     return tuple(sorted(sources.values(), key=lambda source: (source.priority, source.path)))
@@ -250,7 +275,13 @@ def render_discovery(discovery: Discovery) -> str:
         if not matches:
             lines.append("  none")
     legacy = sorted(
-        {source.path.split("/", 1)[0] for source in discovery.sources if source.path.startswith(("handoff/", "project-state/"))}
+        {
+            PurePosixPath(*path.parts[: index + 1]).as_posix()
+            for value in discovery.files
+            for path in (PurePosixPath(value),)
+            for index, part in enumerate(path.parts[:-1])
+            if part.lower() in LEGACY_STATE_DIRS
+        }
     )
     lines.extend(
         ("", "Potential legacy state system:", f"  {', '.join(legacy) if legacy else 'none'}", "", "No project files were modified.")

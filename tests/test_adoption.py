@@ -12,8 +12,10 @@ from prokron.adoption import (
     Requirement,
     SourceClassification,
     classify_source,
+    discover,
     generate_interview_prompts,
     materialize_confirmations,
+    render_discovery,
     stage_adoption,
 )
 
@@ -23,10 +25,14 @@ class AdoptionClassificationTest(unittest.TestCase):
         cases = {
             ".prokron/TASKS.md": SourceClassification.CURRENT_CANONICAL,
             "handoff/TASKS.md": SourceClassification.CURRENT_SUPPORTING,
+            "docs/handoff/DECISIONS.md": SourceClassification.CURRENT_SUPPORTING,
             "CHANGELOG.md": SourceClassification.HISTORICAL,
             "handoff/STATE.md": SourceClassification.DERIVED,
             "tests/test_contract.py": SourceClassification.IMPLEMENTATION_EVIDENCE,
             "docs/old-architecture.md": SourceClassification.STALE_OR_CONFLICTING,
+            "docs/_archive/architecture.md": SourceClassification.STALE_OR_CONFLICTING,
+            "docs/modeling/domain.md": SourceClassification.CURRENT_SUPPORTING,
+            "packages/api/tests/test_contract.py": SourceClassification.IMPLEMENTATION_EVIDENCE,
             "NOTES.md": SourceClassification.UNKNOWN,
         }
         for path, expected in cases.items():
@@ -35,6 +41,47 @@ class AdoptionClassificationTest(unittest.TestCase):
                 self.assertIsNotNone(source)
                 assert source is not None
                 self.assertEqual(source.classification, expected)
+
+        for path in ("docs/pitch/images/hero.webp", "docs/handoff/TASKS.webp", "docs/.DS_Store"):
+            with self.subTest(path=path):
+                self.assertIsNone(classify_source(PurePosixPath(path)))
+
+    def test_discovery_filters_artifacts_and_summarizes_nested_implementation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            subprocess.run(["git", "init", "-q"], cwd=project, check=True)
+            fixture_files = {
+                "handoff/TASKS.md": "# Tasks\n",
+                "docs/handoff/DECISIONS.md": "# Decisions\n",
+                "docs/handoff/INTENTS.md": "# Intents\n",
+                "docs/_archive/plan.md": "# Old plan\n",
+                "docs/pitch/images/hero.webp": "generated image",
+                "docs/.DS_Store": "metadata",
+                ".artifacts/release/error-context.md": "generated error context",
+                "docs/modeling/domain.md": "# Domain model\n",
+                "packages/api/src/service.py": "VALUE = 1\n",
+                "packages/api/tests/test_service.py": "assert True\n",
+            }
+            for relative, content in fixture_files.items():
+                path = project / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+
+            discovery = discover(project)
+            rendered = render_discovery(discovery)
+            sources = {source.path: source.classification for source in discovery.sources}
+
+            self.assertIn("handoff/TASKS.md", sources)
+            self.assertIn("docs/handoff/DECISIONS.md", sources)
+            self.assertIn("docs/handoff/INTENTS.md", sources)
+            self.assertEqual(sources["docs/_archive/plan.md"], SourceClassification.STALE_OR_CONFLICTING)
+            self.assertEqual(sources["docs/modeling/domain.md"], SourceClassification.CURRENT_SUPPORTING)
+            self.assertEqual(sources["packages/api/src/"], SourceClassification.IMPLEMENTATION_EVIDENCE)
+            self.assertEqual(sources["packages/api/tests/"], SourceClassification.IMPLEMENTATION_EVIDENCE)
+            self.assertNotIn("docs/pitch/images/hero.webp", sources)
+            self.assertNotIn("docs/.DS_Store", sources)
+            self.assertFalse(any(path.startswith(".artifacts/") for path in discovery.files))
+            self.assertIn("Potential legacy state system:\n  docs/handoff, handoff", rendered)
 
     def test_coverage_schema_and_contextual_prompt_are_structured(self) -> None:
         requirements = {item.domain: item.requirement for item in COVERAGE_SCHEMA}
