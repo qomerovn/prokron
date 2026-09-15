@@ -8,7 +8,9 @@ from pathlib import Path
 from .core import CANONICAL_FILES, PROKRON, eligible_tasks, load_state, prokron_dir, validate
 from .markdown import INTENT_HEADER, TASK_HEADER, update_section_fields
 from .models import Intent, ProkronError, Task
+from .persistence import write_json
 from .rendering import sync_derived
+from .repository import checkpoint_facts
 
 BOOTSTRAP_START = "<!-- project-prokron:start -->"
 BOOTSTRAP_END = "<!-- project-prokron:end -->"
@@ -44,16 +46,22 @@ def is_git_repository(project: Path) -> bool:
     return result.returncode == 0 and result.stdout.strip() == "true"
 
 
-def install_bootstrap(path: Path) -> bool:
-    text = path.read_text(encoding="utf-8") if path.exists() else ""
+def install_bootstrap(path: Path) -> tuple[bytes | None, bytes] | None:
+    try:
+        before = path.read_bytes()
+    except FileNotFoundError:
+        before = None
+    original = before or b""
+    text = original.decode()
     has_start, has_end = BOOTSTRAP_START in text, BOOTSTRAP_END in text
     if has_start != has_end:
         raise ProkronError(f"{path.name}: incomplete managed Prokron block")
     if has_start:
-        return False
-    separator = "" if not text else "\n" if text.endswith("\n") else "\n\n"
-    path.write_text(text + separator + BOOTSTRAP_BLOCK, encoding="utf-8")
-    return True
+        return None
+    separator = b"" if not original else b"\n" if original.endswith(b"\n") else b"\n\n"
+    updated = original + separator + BOOTSTRAP_BLOCK.encode()
+    path.write_bytes(updated)
+    return before, updated
 
 
 def initialize(project: Path) -> bool:
@@ -146,6 +154,7 @@ def checkpoint(
     if len(intents) != 1:
         raise ProkronError("Checkpoint requires one matching active intent; specify --task when needed")
     intent = intents[0]
+    snapshot = checkpoint_facts(project) if (prokron_dir(project) / "ADOPTION.json").exists() else None
     update_section_fields(
         prokron_dir(project) / "INTENTS.md",
         INTENT_HEADER,
@@ -176,6 +185,8 @@ def checkpoint(
     if errors:
         raise ProkronError("checkpoint produced invalid state:\n- " + "\n- ".join(errors))
     sync_derived(project, updated)
+    if snapshot is not None:
+        write_json(prokron_dir(project) / "CHECKPOINT.json", snapshot)
     return next(item for item in updated.intents if item.subject == intent.subject)
 
 

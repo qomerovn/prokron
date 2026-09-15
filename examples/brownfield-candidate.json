@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "checkpoint": {
+    "head": "",
+    "branch": "main",
+    "worktree": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "project": {
+    "purpose": {
+      "statement": "Track warehouse receipts.",
+      "status": "OBSERVED",
+      "sources": [
+        "src/main.py"
+      ]
+    },
+    "current_state": {
+      "statement": "Receipt import exists; duplicate detection is in progress.",
+      "status": "OBSERVED",
+      "sources": [
+        "src/main.py"
+      ]
+    }
+  },
+  "authority": [
+    {
+      "scope": "receipt import",
+      "source": "human approval of ADR-2",
+      "reason": "Current agreed import contract."
+    }
+  ],
+  "architecture": {
+    "summary": {
+      "statement": "A Python command imports receipt rows.",
+      "status": "OBSERVED",
+      "sources": [
+        "src/main.py"
+      ]
+    },
+    "components": [
+      {
+        "statement": "The importer owns receipt validation.",
+        "status": "OBSERVED",
+        "sources": [
+          "src/main.py"
+        ]
+      }
+    ]
+  },
+  "constraints": [
+    {
+      "statement": "Preserve existing receipt identifiers.",
+      "status": "INFERRED",
+      "sources": []
+    }
+  ],
+  "active_work": {
+    "statement": "T-2 adds duplicate receipt detection.",
+    "status": "INFERRED",
+    "sources": []
+  },
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Import receipt rows",
+      "status": "DONE",
+      "acceptance": "Receipt rows load.",
+      "evidence": "Recorded import check passed.",
+      "validation": "SYNTHETIC"
+    },
+    {
+      "id": "T-2",
+      "title": "Detect duplicate receipts",
+      "status": "WIP",
+      "dependencies": [
+        "T-1"
+      ],
+      "owner": "agent-a",
+      "claimed": "2026-09-16",
+      "acceptance": "Duplicate rows are rejected.",
+      "governed_by": [
+        "ADR-2"
+      ]
+    },
+    {
+      "id": "T-3",
+      "title": "Release importer",
+      "status": "BLOCKED",
+      "dependencies": [
+        "T-2"
+      ],
+      "acceptance": "Operator approves release."
+    }
+  ],
+  "intents": [
+    {
+      "subject": "T-2",
+      "owner": "agent-a",
+      "updated": "2026-09-16",
+      "goal": "Reject duplicate receipt rows.",
+      "current_point": "Import implemented; duplicate check pending.",
+      "constraints": [
+        "Preserve receipt IDs"
+      ],
+      "changed_files": [
+        "src/main.py"
+      ],
+      "next_action": "Add the duplicate receipt regression case."
+    }
+  ],
+  "blockers": [
+    {
+      "statement": "Release waits for operator approval.",
+      "status": "INFERRED",
+      "sources": []
+    }
+  ],
+  "validation": {
+    "known": [
+      {
+        "statement": "Import smoke check passed.",
+        "status": "INFERRED",
+        "sources": []
+      }
+    ],
+    "unknown": [
+      "Duplicate behavior has not been exercised."
+    ]
+  },
+  "decisions": [
+    {
+      "id": "ADR-1",
+      "title": "Allow duplicate rows",
+      "date": "2026-09-15",
+      "status": "SUPERSEDED",
+      "authority": "human/operator",
+      "context": "Initial import policy.",
+      "decision": "Allow duplicate rows."
+    },
+    {
+      "id": "ADR-2",
+      "title": "Reject duplicate rows",
+      "date": "2026-09-16",
+      "status": "ACCEPTED",
+      "authority": "human/operator",
+      "supersedes": [
+        "ADR-1"
+      ],
+      "affects": [
+        "T-2"
+      ],
+      "context": "Operators need stable receipt identity.",
+      "decision": "Reject repeated receipt identifiers."
+    }
+  ],
+  "next_action": {
+    "action": "Add the duplicate receipt regression case.",
+    "reason": "T-2 acceptance needs regression evidence.",
+    "depends_on": [
+      "T-1"
+    ],
+    "task_id": "T-2"
+  },
+  "unknowns": [
+    "Production deployment details are unknown."
+  ]
+}

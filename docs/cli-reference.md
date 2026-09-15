@@ -11,29 +11,58 @@ Creates `.prokron/` from packaged Markdown templates, installs a managed
 bootstrap block in existing `AGENTS.md` and `CLAUDE.md` files, and generates
 `STATE.md` and `TASK_GRAPH.md`. Repeated calls preserve existing canonical state.
 
-### `prokron adopt [--dry-run | --apply | --questions-json | --answer-json JSON] [--from DIR] [--interactive]`
+### Agent-driven adoption
 
-Discovers likely current-state sources without reconstructing repository history.
-`--dry-run` prints deterministic Git, tree, documentation, state-source, and
-implementation-evidence discovery without writing files. A normal run stages a
-reviewable candidate under `.prokron-adoption/`; `--from DIR` prefers structured
-legacy `TASKS.md`, `DECISIONS.md`, and `INTENTS.md` from that directory.
+```text
+prokron adopt prepare
+prokron adopt schema
+prokron adopt ingest CANDIDATE.json
+prokron adopt confirm --by HUMAN --digest REVIEWED_DIGEST
+prokron adopt apply
+```
 
-`--interactive` evaluates a fixed coverage schema, then presents related
-current-state gaps as one proposal. Press Enter to accept supported defaults,
-edit only incorrect items, review uncertainties, or leave the proposal
-unresolved. Answers are persisted so later runs retain confirmed state.
-`INTERVIEW.md` is the generated audit record; it is not edited by users or agents.
-`--questions-json` retrieves unresolved structured items and `--answer-json`
-records one structured answer through Core. Core does not call a model provider.
-Confirmed work, dependencies, blockers, validation, decisions, and next action
-are materialized into the appropriate candidate state files.
+`adopt` without a subcommand is equivalent to `prepare`. Prepare prints JSON
+containing Git facts, tree names, file extensions, exclusions, a repository
+checkpoint, and instructions. It writes no project files and makes no semantic
+conclusions. `schema` emits the candidate JSON Schema, without requiring a repo.
 
-Required and relevant conditional domains block apply until established;
-optional historical domains never block. `--apply` validates candidate canonical
-state, promotes it to `.prokron/`, accepts the baseline decision, links generated
-operational tasks to it, and installs the normal bootstrap and derived views.
-Legacy sources remain untouched.
+The coding agent reads relevant repository evidence and creates the candidate.
+Copy `prepare.checkpoint` into its `checkpoint` field. Save the input outside the
+repository or inside `.prokron-candidate/` so writing it does not invalidate the
+repository checkpoint. The [example candidate](../examples/brownfield-candidate.json)
+shows the shape; replace its placeholder checkpoint and sample statements.
+
+`ingest` validates the schema, dependencies, decision lineage, and lossless
+Markdown serialization. It stages `.prokron-candidate/candidate.json` and prints
+the review digest. Ingestion does not write canonical state. Corrected candidates
+must be re-ingested, which clears any prior confirmation.
+
+The human reviews the staged candidate, including its unknowns. Only after that
+approval may the agent call `confirm` with the reviewed digest and human identity.
+This records an attestation; it is not an identity authentication service.
+Unknowns remain valid, and confirmation never upgrades individual inferred claims.
+
+`apply` requires matching confirmation, an unchanged branch/content snapshot, and
+valid state. It builds the canonical directory before publication, preserves
+custom bootstrap instructions, and refuses to replace an existing `.prokron/`.
+The full reviewed candidate and confirmation become `ADOPTION.json`; current
+tasks, decisions, intent and journal remain Markdown authority.
+
+### `prokron adopt fallback [--dry-run | --apply | --questions-json | --answer-json JSON] [--from DIR] [--interactive]`
+
+Explicit access to the previous heuristic interview and legacy migration path.
+It stages `.prokron-adoption/`, retains its existing review guards and formats,
+and never runs automatically from the primary adoption path. Old adoption flags
+now require the `fallback` subcommand. Legacy sources remain untouched.
+
+### `prokron resume`
+
+Prints a JSON continuity pack with current canonical tasks, decisions, intents
+and journal, plus the reviewed adoption snapshot and recorded next action.
+A fresh session needs no conversational memory or full repository rediscovery.
+Stale or blocked packs retain the canonical context but include a condition and
+exit with code 2. The adoption snapshot is historical; live Markdown takes
+precedence for operational work.
 
 ### `prokron status`
 
@@ -43,8 +72,16 @@ governing decisions, uncertainty, and next actions.
 
 ### `prokron next`
 
-Prints every `TODO` task whose dependencies are `DONE`, followed by the first
-eligible task as the recommendation. Task order follows `TASKS.md`.
+For agent-adopted repositories, returns the recorded next action, with a current
+intent taking precedence over the initial adoption action. It checks explicit
+dependencies and task blockers. It never searches repository prose or invents
+an action. Changed branch or working-tree content yields `STATE_STALE` with
+checkpoint/current HEAD and `/prokron-sync` guidance. HEAD remains provenance;
+commits containing only excluded generated state do not make the snapshot stale. Blocked or completed
+action targets produce explicit conditions rather than a semantic guess.
+
+Repositories initialized with `init` or adopted via fallback retain the existing
+ordered `TODO` eligibility listing; they have no agent-adoption checkpoint.
 
 ### `prokron graph`
 
@@ -71,7 +108,10 @@ task context. Blocked, missing, or already-started tasks are rejected.
 
 ### `prokron checkpoint`
 
-Updates one active intent and appends a journal entry.
+Updates one active intent and appends a journal entry. For agent adoption it
+also records the current repository checkpoint. The agent must first evaluate
+changes and update affected canonical operational state. Checkpoint does not
+revise the immutable adoption baseline. See the [sync lifecycle](deterministic-harness.md#lifecycle).
 
 ```text
 prokron checkpoint

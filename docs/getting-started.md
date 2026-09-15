@@ -108,3 +108,10 @@ for the boundary between canonical and generated files.
 - `Project Prokron is not initialized`: run `prokron init` or `prokron adopt`.
 - `canonical state is invalid`: fix every listed error, then run `prokron doctor`.
 - `TASK_GRAPH.md is stale` or `STATE.md is stale`: run `prokron status` to regenerate both.
+
+## Adopt an existing repository
+
+Use the [agent adoption instructions](../adapters/generic/README.md#prokron-adopt).
+The agent supplies a structured candidate after inspecting the repository. Core
+validates it, records explicit human confirmation, and generates `.prokron/`.
+No legacy handoff files are required. Run `prokron resume` in the next session.

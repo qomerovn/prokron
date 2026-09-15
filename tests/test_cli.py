@@ -182,7 +182,7 @@ class ProkronCLITest(unittest.TestCase):
             (handoff / "DECISIONS.md").write_text("# Decisions\n", encoding="utf-8")
             (handoff / "INTENTS.md").write_text("# Intents\n\nNo intent in flight.\n", encoding="utf-8")
 
-            dry_run = self.run_cli(project, "adopt", "--dry-run")
+            dry_run = self.run_cli(project, "adopt", "fallback", "--dry-run")
             self.assertEqual(dry_run.returncode, 0, dry_run.stderr)
             self.assertIn("handoff/TASKS.md [CURRENT_SUPPORTING]", dry_run.stdout)
             self.assertIn("tests/ [IMPLEMENTATION_EVIDENCE]", dry_run.stdout)
@@ -192,7 +192,7 @@ class ProkronCLITest(unittest.TestCase):
 
             adopted = self.run_cli(
                 project,
-                "adopt",
+                "adopt", "fallback",
                 "--from",
                 "handoff",
                 "--interactive",
@@ -211,7 +211,7 @@ class ProkronCLITest(unittest.TestCase):
             self.assertTrue((candidate / "INTERVIEW.md").is_file())
             self.assertTrue(handoff.is_dir())
 
-            applied = self.run_cli(project, "adopt", "--apply")
+            applied = self.run_cli(project, "adopt", "fallback", "--apply")
             self.assertEqual(applied.returncode, 0, applied.stderr)
             self.assertFalse(candidate.exists())
             self.assertTrue(handoff.is_dir())
@@ -255,7 +255,7 @@ class ProkronCLITest(unittest.TestCase):
                 )
                 + "\n"
             )
-            adopted = self.run_cli(project, "adopt", "--interactive", input_text=answers)
+            adopted = self.run_cli(project, "adopt", "fallback", "--interactive", input_text=answers)
             self.assertEqual(adopted.returncode, 0, adopted.stderr)
             candidate = project / ".prokron-adoption"
             report = (candidate / "ADOPTION_REPORT.md").read_text(encoding="utf-8")
@@ -265,7 +265,7 @@ class ProkronCLITest(unittest.TestCase):
             self.assertIn("## T-100", (candidate / "INTENTS.md").read_text(encoding="utf-8"))
             baseline = (candidate / "BASELINE.md").read_text(encoding="utf-8")
             self.assertIn("Human-confirmed operational tasks: 1 [CONFIRMED_HUMAN", baseline)
-            self.assertEqual(self.run_cli(project, "adopt", "--apply").returncode, 0)
+            self.assertEqual(self.run_cli(project, "adopt", "fallback", "--apply").returncode, 0)
             context = self.run_cli(project, "context", "T-100")
             self.assertIn("Run the focused migration tests.", context.stdout)
             self.assertIn("ADR-A002: Adoption baseline", context.stdout)
@@ -278,7 +278,7 @@ class ProkronCLITest(unittest.TestCase):
 
             interrupted = self.run_cli(
                 project,
-                "adopt",
+                "adopt", "fallback",
                 "--answer-json",
                 '{"domain":"active work","mode":"confirm"}',
             )
@@ -288,13 +288,13 @@ class ProkronCLITest(unittest.TestCase):
             self.assertEqual(stored["answers"]["active work"]["source"], "adoption interview")
             self.assertIn("confirmation_timestamp", stored["answers"]["active work"])
 
-            resumed = self.run_cli(project, "adopt", "--interactive", input_text="\n")
+            resumed = self.run_cli(project, "adopt", "fallback", "--interactive", input_text="\n")
             self.assertEqual(resumed.returncode, 0, resumed.stderr)
             self.assertIn("1 confirmations already recorded.", resumed.stdout)
             self.assertNotIn("[1/5] Active Work", resumed.stdout)
             self.assertIn("0 blocking confirmations remain.", resumed.stdout)
             self.assertIn("Adoption candidate is ready.", resumed.stdout)
-            self.assertIn("Run: prokron adopt --apply", resumed.stdout)
+            self.assertIn("Run: prokron adopt fallback --apply", resumed.stdout)
 
             candidate = project / ".prokron-adoption"
             task_text = (candidate / "TASKS.md").read_text(encoding="utf-8")
@@ -317,7 +317,7 @@ class ProkronCLITest(unittest.TestCase):
             project = Path(temporary)
             self.make_interview_fixture(project)
 
-            adopted = self.run_cli(project, "adopt", "--interactive", input_text="\n")
+            adopted = self.run_cli(project, "adopt", "fallback", "--interactive", input_text="\n")
 
             self.assertEqual(adopted.returncode, 0, adopted.stderr)
             self.assertIn("Current-state proposal", adopted.stdout)
@@ -341,7 +341,7 @@ class ProkronCLITest(unittest.TestCase):
 
             adopted = self.run_cli(
                 project,
-                "adopt",
+                "adopt", "fallback",
                 "--interactive",
                 input_text="2\n1\n\n\n\nImplement the current branch changes.\n",
             )
@@ -358,7 +358,7 @@ class ProkronCLITest(unittest.TestCase):
             project = Path(temporary)
             self.make_interview_fixture(project)
 
-            questions = self.run_cli(project, "adopt", "--questions-json")
+            questions = self.run_cli(project, "adopt", "fallback", "--questions-json")
             self.assertEqual(questions.returncode, 0, questions.stderr)
             items = json.loads(questions.stdout)
             self.assertEqual(len(items), 6)
@@ -372,16 +372,16 @@ class ProkronCLITest(unittest.TestCase):
 
             answered = self.run_cli(
                 project,
-                "adopt",
+                "adopt", "fallback",
                 "--answer-json",
                 '{"domain":"active work","mode":"confirm"}',
             )
             self.assertEqual(answered.returncode, 0, answered.stderr)
             self.assertIn("5 blocking confirmations remain.", answered.stdout)
-            remaining = json.loads(self.run_cli(project, "adopt", "--questions-json").stdout)
+            remaining = json.loads(self.run_cli(project, "adopt", "fallback", "--questions-json").stdout)
             self.assertNotIn("active work", {item["domain"] for item in remaining})
 
-            blocked_apply = self.run_cli(project, "adopt", "--apply")
+            blocked_apply = self.run_cli(project, "adopt", "fallback", "--apply")
             self.assertEqual(blocked_apply.returncode, 2)
             self.assertIn("unresolved blocking", blocked_apply.stderr)
 
@@ -389,7 +389,7 @@ class ProkronCLITest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             project = Path(temporary)
             self.make_interview_fixture(project)
-            result = self.run_cli(project, "adopt", "--interactive", input_text="")
+            result = self.run_cli(project, "adopt", "fallback", "--interactive", input_text="")
             self.assertEqual(result.returncode, 2)
             self.assertIn("interactive input ended before the interview completed", result.stderr)
 

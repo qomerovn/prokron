@@ -59,3 +59,15 @@
 - Affects: T-V02-03
 - Context: Existing-project adoption needs a guided human interview without requiring model providers or treating a generated Markdown report as an input interface.
 - Decision: Core exposes structured questions and answers, the CLI provides the guided interview, answers persist with provenance for deterministic resume, and INTERVIEW.md remains generated audit output.
+
+## ADR-006: Make Core a deterministic state harness
+- Date: 2026-09-16
+- Status: ACCEPTED
+- Authority: user-supplied deterministic state harness specification
+- Supersedes: none
+- Amends: ADR-001, ADR-005
+- Corrects: none
+- Rejects: none
+- Affects: T-HARNESS-01
+- Context: Semantic ranking and interviews grew inside adoption even though the current coding agent already owns repository understanding.
+- Decision: Primary adoption accepts agent-authored structured state, validates it, records digest-bound human confirmation and publishes canonical state. Core owns deterministic facts and integrity; the agent owns semantics and questions. Preserve operational Markdown authority and store the reviewed adoption snapshot and checkpoint as JSON. Keep heuristic adoption and legacy migration behind explicit fallback.

@@ -4,7 +4,7 @@ import unittest
 from dataclasses import fields
 from pathlib import Path, PurePosixPath
 
-from prokron.adoption import (
+from prokron.fallback.adoption import (
     COVERAGE_SCHEMA,
     AssessmentStatus,
     Confidence,
@@ -455,6 +455,31 @@ class AdoptionClassificationTest(unittest.TestCase):
             self.assertIn("Recent commit: Start retries", active)
             self.assertEqual(parse_tasks(candidate / "TASKS.md"), ())
             self.assertEqual(parse_intents(candidate / "INTENTS.md"), ())
+
+    def test_markdown_navigation_is_not_inferred_as_next_action(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            subprocess.run(["git", "init", "-q", "-b", "main"], cwd=project, check=True)
+            (project / "README.md").write_text("# Ledger\n\nTracks finance operations.\n", encoding="utf-8")
+            (project / "roadmap.md").write_text(
+                "# Roadmap\n\n"
+                "[Thesis](thesis.md) · [Domain Model](domain.md) · **Roadmap** · [Open Decisions](decisions.md)\n\n"
+                "**Status:** Sequencing only\n",
+                encoding="utf-8",
+            )
+            subprocess.run(["git", "add", "."], cwd=project, check=True)
+            subprocess.run(
+                ["git", "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "Start ledger"],
+                cwd=project,
+                check=True,
+            )
+            subprocess.run(["git", "checkout", "-qb", "T-M6-02-grni"], cwd=project, check=True)
+
+            result = stage_adoption(project, resume=True)
+            next_action = next(item for item in result.interview_items if item.domain == "next action")
+
+            self.assertEqual(next_action.hypothesis, ())
+            self.assertEqual(next_action.status, AssessmentStatus.NEEDS_CONFIRMATION)
 
     def test_generic_agent_instructions_do_not_trigger_human_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

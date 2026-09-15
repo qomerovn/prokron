@@ -4,7 +4,7 @@ Generated from canonical Prokron files; do not edit manually.
 
 ## Current
 - Project: Prokron
-- Tasks: 12
+- Tasks: 15
 - Active intents: 0
 
 ## In flight
@@ -14,7 +14,7 @@ Generated from canonical Prokron files; do not edit manually.
 - None
 
 ## Blocked / waiting
-- None
+- T-V02-05: explicitly blocked
 
 ## Governing decisions
 - None

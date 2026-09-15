@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 from .core import eligible_tasks, load_state, prokron_dir, validate
-from .models import Decision, ProkronError, ProkronState, Task
+from .models import Decision, Intent, ProkronError, ProkronState, Task
 
 
 def _blocked_tasks(state: ProkronState) -> tuple[tuple[Task, tuple[str, ...]], ...]:
@@ -193,3 +195,60 @@ def context_pack(project: Path, task_id: str | None = None) -> str:
     if not decisions:
         lines.append("- None")
     return "\n".join([*lines, ""])
+
+
+def task_markdown(task: Task) -> str:
+    return (
+        f"## {task.id}: {task.title}\n"
+        f"- Status: {task.status}\n- Validation: {task.validation}\n"
+        f"- Dependencies: {', '.join(task.dependencies) or 'none'}\n"
+        f"- Owner: {task.owner}\n- Claimed: {task.claimed}\n"
+        f"- Acceptance: {task.acceptance}\n- Evidence: {task.evidence}\n"
+        f"- Governed by: {', '.join(task.governed_by) or 'none'}\n"
+    )
+
+
+def intent_markdown(intent: Intent) -> str:
+    return (
+        f"## {intent.subject}\n- Owner: {intent.owner}\n- Updated: {intent.updated}\n"
+        f"- Goal: {intent.goal}\n- Current point: {intent.current_point}\n"
+        f"- Constraints: {', '.join(intent.constraints) or 'none'}\n"
+        f"- Changed files: {', '.join(intent.changed_files) or 'none'}\n"
+        f"- Next action: {intent.next_action}\n"
+    )
+
+
+def decision_markdown(decision: Decision) -> str:
+    lines = [f"## {decision.id}: {decision.title}"]
+    for name, value in asdict(decision).items():
+        if name in {"id", "title"}:
+            continue
+        if isinstance(value, tuple):
+            value = ", ".join(value) or "none"
+        lines.append(f"- {name.replace('_', ' ').title()}: {value}")
+    return "\n".join(lines) + "\n"
+
+
+def baseline_markdown(candidate: dict[str, Any]) -> str:
+    lines = ["# Adoption baseline", "", "Reviewed snapshot at adoption; current work lives in TASKS.md and INTENTS.md.", ""]
+
+    def emit(name: str, value: Any) -> None:
+        if isinstance(value, dict) and "statement" in value:
+            lines.append(f"- {name}: {value['statement']} [{value['status']}; sources: {', '.join(value['sources']) or 'none'}]")
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                emit(f"{name} / {key}", item)
+        elif isinstance(value, list):
+            if not value:
+                lines.append(f"- {name}: none recorded")
+            for item in value:
+                emit(name, item)
+        else:
+            lines.append(f"- {name}: {value}")
+
+    for key in ("project", "authority", "architecture", "constraints", "active_work", "blockers", "validation", "next_action", "unknowns"):
+        lines.extend((f"## {key.replace('_', ' ').title()}", ""))
+        emit(key, candidate[key])
+        lines.append("")
+    lines.append("Full submitted provenance and confirmation: ADOPTION.json.\n")
+    return "\n".join(lines)

@@ -1,6 +1,6 @@
 # Prokron architecture
 
-Prokron keeps project meaning close to implementation reality. Its architecture
+Prokron externalizes state; the coding agent supplies intelligence. Its architecture
 is intentionally local: Markdown is durable state, Python is the integrity and
 lifecycle engine, and Git is the history and collaboration layer.
 
@@ -35,11 +35,16 @@ are always safe to regenerate.
 | `core.py` | State loading, eligibility, and cross-file integrity validation |
 | `rendering.py` | Deterministic state, graph, and context rendering |
 | `operations.py` | Initialization, task starts, and checkpoints |
-| `adoption.py` | Deterministic discovery, candidate reconstruction, review gates, and apply |
+| `repository.py` | Git facts and content fingerprints; no semantic interpretation |
+| `candidate.py` | Agent candidate schema, provenance/status rules, operational validation |
+| `persistence.py` | Strict JSON reads and atomic metadata writes |
+| `adoption.py` | Agent ingestion, digest-bound confirmation, publication and continuity |
+| `fallback/adoption.py` | Optional heuristic interview, ranking and legacy import |
 | `cli.py` | Argument parsing, command output, and exit-code policy |
 
-Adapters remain thin instructions that call the same CLI. They do not implement
-their own parser or project semantics.
+Adapters teach the current coding agent to inspect evidence, reason about project
+semantics, ask material questions, and submit structured state through the CLI.
+Core never imports fallback or generates semantic questions.
 
 ## Read and write flow
 
@@ -80,15 +85,23 @@ multiple writable representations from drifting, at the cost of requiring
 
 ### Explicit uncertainty and the adoption boundary
 
-Adoption discovers filenames and Git metadata without recursively interpreting
-source code. It stages current-state candidates under `.prokron-adoption/` with
-source classifications, per-domain coverage assessments, contextual interview
-prompts, confidence labels, unknowns, conflicts, and a proposed baseline decision.
-Operational confirmations are materialized in candidate tasks and intents;
-governing confirmations are summarized by the baseline decision. Discovered
-filenames remain distinct from content actually parsed. Only an explicit,
-unblocked `prokron adopt --apply` promotes that directory to canonical `.prokron/`
-state. Legacy sources remain evidence.
+The primary adoption path accepts agent-authored JSON under a small published
+schema. Claims preserve OBSERVED, INFERRED or CONFIRMED status, source references,
+and optional creation/confirmation metadata. Unknowns are legitimate state.
+
+Human confirmation binds the reviewed candidate digest. Apply validates again,
+checks repository freshness and publishes a fully prepared `.prokron/` directory.
+`ADOPTION.json` preserves the immutable approved snapshot; `BASELINE.md` presents
+it for readers. Operational Markdown remains independently mutable authority.
+`CHECKPOINT.json` records HEAD for provenance plus branch and repository-content
+fingerprints for freshness. Commits containing only excluded generated state do
+not invalidate the checkpoint.
+Resume returns the snapshot together with current operational Markdown, with
+explicit stale/blocked conditions. No repository understanding is performed.
+
+The optional fallback retains `.prokron-adoption/`, semantic ranking, interviews,
+and structured legacy imports behind `prokron adopt fallback`. It is not a Core
+dependency. See the [audit and new boundary](deterministic-harness.md).
 
 ## License and trademarks
 

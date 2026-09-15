@@ -125,3 +125,60 @@
 - Learned: Conservative defaults let one explicit human confirmation establish several related domains without moving validation or authority into adapters.
 - Left mid-air: The validated UX refinement and its Prokron checkpoint remain uncommitted as requested.
 - Next: Review the grouped K-Ledger interaction and commit only when explicitly approved.
+
+## 2026-09-16 — T-V02-05
+- Task: T-V02-05
+- Owner: codex/primary
+- Did: Reproduced and fixed Markdown navigation being inferred as a next action, added a focused regression, and reran the real K-Ledger grouped proposal without supplying human answers.
+- Validation: Ruff, strict mypy, 52 unittests, and Git diff check pass; K-Ledger now reports its next safe action as unknown.
+- Learned: Planning-document summaries require executable verb semantics before they can become an action hypothesis.
+- Left mid-air: K-Ledger confirmation, apply, continuity validation, distribution gates, final commit, and push remain.
+- Next: Ask the developer to confirm or correct the grouped proposal and provide the exact next safe action.
+
+## 2026-09-16 — T-V02-05 K-Ledger apply failure
+- Task: T-V02-05
+- Owner: codex/primary
+- Did: Persisted all six human confirmations, applied the K-Ledger candidate, ran doctor, status, next, and an isolated fresh-agent continuity read.
+- Validation: Apply, doctor, status, next, build, installed-wheel generic smoke, and state recovery pass; no-history-reconstruction fails because canonical TASKS.md contains roughly 128 legacy table rows while the parsed graph contains one task.
+- Learned: A legacy file can parse as zero canonical records yet still be carried forward as canonical Markdown when unrelated fenced content bypasses the incompatibility guard.
+- Left mid-air: K-Ledger now has an applied .prokron directory exhibiting this continuity defect; Prokron closure remains uncommitted.
+- Next: Prevent zero-record legacy payloads from becoming canonical text, add a regression, then rerun adoption from a clean K-Ledger pre-adoption state only with explicit authorization for that reset.
+
+## 2026-09-15T19:17:06.221046+00:00 — deterministic harness extraction
+- Task: T-HARNESS-01
+- Owner: codex/primary
+- Did: Audited module boundaries and implemented agent-authored adoption while demoting the existing heuristic engine to explicit fallback.
+- Validation: 68 unittests, Ruff and strict mypy pass; artifact build pending.
+- Learned: Existing deterministic models, graph validation, parsers and lifecycle operations were separable; a wholesale rewrite was unnecessary.
+- Left mid-air: Package verification and final acceptance record remain. T-V02-05 is prior fallback dogfood work; its existing edits and failure evidence are preserved.
+- Next: Verify the installed artifact and finalize T-HARNESS-01.
+
+## 2026-09-15T19:17:06.221310+00:00 — deterministic harness acceptance
+- Task: T-HARNESS-01
+- Owner: codex/primary
+- Did: Completed the agent-driven primary path, explicit fallback extraction, provider-neutral adapters, and continuity acceptance checks on refactor/deterministic-state-harness.
+- Validation: 68 unittests, Ruff, strict mypy, wheel/sdist build, clean installed-wheel brownfield adoption and fresh-process resume, stale-state rejection, fallback import, and Git diff check pass on 2026-09-16.
+- Learned: Fresh-process continuity succeeds from the canonical snapshot and operational Markdown; no repository rediscovery is required. A live cross-model human interview was not exercised.
+- Left mid-air: Implementation is complete and uncommitted for branch review. Prior T-V02-05 dogfood is blocked/deferred because its remaining incompatible-table issue is now confined to optional fallback. Existing navigation fix and regression are preserved there.
+- Next: Review the deterministic harness branch; address fallback legacy payload carry-through only if that importer is needed.
+
+### Preserved prior T-V02-05 intent
+
+```text
+- Owner: codex/primary
+- Updated: 2026-09-16
+- Goal: Close Adoption Boundary only after the real K-Ledger adoption and continuity checks pass.
+- Current point: Next-action inference and the K-Ledger apply flow pass, but adoption copied the legacy tabular task board into canonical TASKS.md even though zero legacy tasks were imported.
+- Constraints: do not fabricate confirmation, do not weaken the apply guard, do not commit before end-to-end passage
+- Changed files: src/prokron/adoption.py, tests/test_adoption.py
+- Next action: Fix empty or incompatible legacy state payload carry-through before rerunning K-Ledger adoption from a clean pre-adoption state.
+```
+
+## 2026-09-15T19:23:58.545428+00:00 — deterministic harness cleanup
+- Task: T-HARNESS-02
+- Owner: codex/primary
+- Did: Reused validated snapshots through apply/next/resume, moved Markdown renderers into rendering.py, reused schema definitions and replaced the suppressed candidate-conversion type error with typed record conversion.
+- Validation: 69 tests, Ruff, strict mypy, doctor, and synced CodeGraph status pass.
+- Learned: CodeGraph confirmed that next and resume reached publication-only Markdown round-trip validation through adopted_state; reads now use schema and graph validation while ingest and apply retain the round trip.
+- Left mid-air: Cleanup complete; branch changes remain uncommitted. CodeGraph 1.6.0 is installed, connected to Codex, and its 19-file project index is current.
+- Next: Review and commit the deterministic harness branch.

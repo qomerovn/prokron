@@ -39,15 +39,27 @@ prokron checkpoint \
 prokron doctor
 ```
 
-Use `prokron adopt --dry-run` to inspect an existing project without changing it.
-`prokron adopt` stages an auditable candidate under `.prokron-adoption/`; review
-and resolve its blocking unknowns or conflicts before `prokron adopt --apply`
-promotes it to canonical state. Use `--from handoff/` for structured legacy state
-and `--interactive` for a grouped evidence-driven review. `INTERVIEW.md` is the
-generated audit record, not an input form. Agents can retrieve unresolved items
-with `--questions-json` and submit answers with `--answer-json`. Confirmed active
-execution is written to candidate `TASKS.md` and `INTENTS.md`; historical tasks
-and decisions are not reconstructed automatically.
+For an existing repository, ask your coding agent to follow
+[`/prokron-adopt`](adapters/generic/README.md). The agent inspects the code,
+records current state and uncertainty, and asks material questions. Core provides
+facts and schema, validates the submitted candidate, and persists human-approved
+state. Prokron externalizes state; the coding agent supplies intelligence.
+
+```bash
+prokron adopt prepare
+prokron adopt schema
+prokron adopt ingest /tmp/candidate.json
+# After the human reviews the staged candidate:
+prokron adopt confirm --by human/name --digest <reviewed-digest>
+prokron adopt apply
+prokron resume
+```
+
+The old heuristic interview and structured legacy importer remain available
+explicitly through `prokron adopt fallback --interactive` and
+`prokron adopt fallback --from handoff/`. See the
+[adoption protocol](docs/deterministic-harness.md) and
+[example candidate](examples/brownfield-candidate.json).
 
 ## How it works
 
@@ -59,6 +71,9 @@ The files under `.prokron/` have clear ownership:
 | `INTENTS.md` | Current execution position and next action |
 | `DECISIONS.md` | Append-only decision history and relationships |
 | `JOURNAL.md` | Append-only checkpoint and handoff history |
+| `ADOPTION.json` | Immutable reviewed adoption snapshot, provenance, and confirmation |
+| `BASELINE.md` | Readable adoption snapshot; current work remains in tasks and intent |
+| `CHECKPOINT.json` | HEAD, branch, and working-tree fingerprint at the last checkpoint |
 | `STATE.md` | Generated current-state summary |
 | `TASK_GRAPH.md` | Generated dependency and eligibility view |
 
@@ -71,6 +86,7 @@ completion evidence, and stale generated views.
 - [Getting started](docs/getting-started.md): initialize a repository and complete a handoff loop.
 - [CLI reference](docs/cli-reference.md): commands, arguments, behavior, and exit codes.
 - [Architecture](docs/architecture.md): state ownership, runtime boundaries, and design trade-offs.
+- [Deterministic harness](docs/deterministic-harness.md): current product boundary, audit, adoption, and continuity.
 - [Product thesis](docs/project-prokron-full-thesis-architecture-v2.md): the full protocol direction.
 - [Adoption boundary supplement](docs/prokron-thesis-supplement-adoption-boundary.md): current-state reconstruction and existing-project migration semantics.
 - [Greenfield example](examples/greenfield): a checked-in project-state fixture.
