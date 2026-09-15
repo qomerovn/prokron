@@ -179,3 +179,13 @@
 - Acceptance: The installer configures OpenCode slash commands and a documented generic path so models such as GLM, MiniMax, Mistral, and Grok can use Prokron through their agent host without provider-specific Prokron logic.
 - Evidence: All five OpenCode command files have valid frontmatter; local installer checks cover every host adapter and generic output; the exact published private-GitHub command installed `AGENTS.md` and all OpenCode commands into a disposable repository; documentation links and Git checks pass.
 - Governed by: ADR-008, ADR-010
+
+## T-CLEANUP-01: Remove repository CodeGraph state
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-HOSTS-01
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: The repository has no CodeGraph index, ignore rule, or active product configuration.
+- Evidence: CodeGraph `uninit` removed `.codegraph/`; the ignore rule is gone; product files contain no CodeGraph reference; Git checks pass.
+- Governed by: ADR-008

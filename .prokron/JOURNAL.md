@@ -245,3 +245,12 @@
 - Learned: Model providers need no Prokron-specific files; host-native commands plus the open `AGENTS.md` convention cover the workflow without coupling project memory to a model.
 - Left mid-air: Nothing.
 - Next: Install Prokron in the target repository, choose any model in its host, and start with the printed command.
+
+## 2026-09-16 — repository CodeGraph removal
+- Task: T-CLEANUP-01
+- Owner: codex/primary
+- Did: Removed the ignored CodeGraph index and its repository ignore rule because Prokron no longer contains application code.
+- Validation: `.codegraph/` is absent, product files contain no CodeGraph configuration, and Git whitespace checks pass.
+- Learned: The Markdown workflow needs no repository code index.
+- Left mid-air: Nothing in the repository. The shared global CodeGraph installation remains outside project scope.
+- Next: Open the clean repository and use the Prokron workflow directly.
