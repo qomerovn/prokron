@@ -35,9 +35,36 @@ gh api -H 'Accept: application/vnd.github.raw+json' 'repos/qomerovn/prokron/cont
 
 The private repository requires an authenticated [GitHub CLI](https://cli.github.com/).
 The installer adds the chronicle, workflows, generic agent instructions, and
-Codex, Claude Code, and OpenCode adapters. It preserves an existing `.prokron/`
-directory and existing project instructions, then prints the agent-chat command
-that starts the selected mode.
+Codex, Claude Code, and OpenCode adapters. It preserves existing `.prokron/`
+records and project instructions, restores missing files, then prints the
+agent-chat command to initialize a fresh chronicle or resume an existing one.
+
+From a downloaded or cloned Prokron checkout, installation also works offline:
+
+```sh
+sh ./install.sh existing /path/to/your/project
+```
+
+Once this repository is public, anonymous installation will be available with:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/qomerovn/prokron/main/install.sh | sh -s -- existing
+```
+
+Use `new` instead of `existing` for a new project. Anonymous delivery cannot be
+verified while the repository is private.
+
+### Updating an installation
+
+Reinstalling adds missing files; it **does not upgrade existing guidance**. It
+prints a reminder when guidance is retained. From a current Prokron checkout,
+review and merge changes to `commands/`, `.claude/commands/`,
+`.opencode/commands/`, `.agents/skills/prokron/SKILL.md`, and
+`templates/.prokron/README.md` (installed as `.prokron/README.md`). Merge the
+Prokron block in `AGENTS.md`, keeping surrounding project rules.
+
+Keep customizations and all six chronicle records. Do not copy empty templates
+over project history. Repeated initialization also preserves history and resumes.
 
 ## Models and agent hosts
 
@@ -84,7 +111,8 @@ repository.
 | Prepare a handoff | `/prokron-checkpoint` | `$prokron checkpoint` |
 | Continue from project memory | `/prokron-resume` | `$prokron resume` |
 
-Agents maintain the chronicle automatically. Every new work request becomes a
+Installed rules instruct agents to maintain the chronicle automatically, without
+requiring slash commands. Every new work request becomes a
 task before implementation. Every material choice becomes an ADR as soon as it
 is made or acted on; changed decisions get a new ADR that supersedes the old
 one. `INTENT.md` always identifies the single active task and exact work point.
@@ -93,6 +121,15 @@ The agent checkpoints before handoff, interruption, compaction, or any known or
 estimated context, token, time, session, rate, or quota limit. If the host does
 not expose a meter, it checkpoints after meaningful milestones, before
 long-running work, and before ending the session.
+
+These are instructions the working agent must follow, not a background monitor.
+Prokron cannot detect hidden five-hour or seven-day quota counters or guarantee
+a final write after an abrupt cutoff. Milestone checkpoints limit how much work
+can be missing from the handoff.
+
+Run `sh tests/install.sh` in this checkout to check installation and preservation.
+This does not test model compliance or real quota warnings. Use the
+[handoff pilot](docs/SPEC.md#handoff-pilot) to verify those workflows with your host.
 
 Read the [specification](docs/SPEC.md) for the complete working agreement and
 the [chronicle guide](.prokron/README.md) for the read order.

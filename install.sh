@@ -3,6 +3,7 @@ set -eu
 
 mode=${1:-}
 target=${2:-.}
+retained=0
 
 case "$mode" in
   new|existing) ;;
@@ -22,7 +23,7 @@ source_dir=
 temp_dir=
 
 for file in AGENTS.md CLAUDE.md; do
-  if [ -e "$target/$file" ] && [ ! -f "$target/$file" ]; then
+  if [ -L "$target/$file" ] || { [ -e "$target/$file" ] && [ ! -f "$target/$file" ]; }; then
     echo "Cannot install: $target/$file is not a regular file" >&2
     exit 1
   fi
@@ -68,19 +69,31 @@ fi
 copy_new() {
   source_file=$1
   target_file=$2
-  if [ ! -e "$target_file" ]; then
+  if [ -L "$target_file" ] || { [ -e "$target_file" ] && [ ! -f "$target_file" ]; }; then
+    echo "Cannot install: $target_file is not a regular file" >&2
+    exit 1
+  elif [ ! -e "$target_file" ]; then
     mkdir -p "$(dirname "$target_file")"
     cp "$source_file" "$target_file"
+  elif ! cmp -s "$source_file" "$target_file"; then
+    retained=1
   fi
 }
 
-if [ -e "$target/.prokron" ] && [ ! -d "$target/.prokron" ]; then
-  echo "Cannot install: $target/.prokron is not a directory" >&2
-  exit 1
-fi
-if [ ! -d "$target/.prokron" ]; then
-  cp -R "$source_dir/templates/.prokron" "$target/.prokron"
-fi
+for path in .prokron commands .claude .claude/commands .opencode .opencode/commands .agents .agents/skills .agents/skills/prokron; do
+  if [ -L "$target/$path" ] || { [ -e "$target/$path" ] && [ ! -d "$target/$path" ]; }; then
+    echo "Cannot install into linked or non-directory path: $target/$path" >&2
+    exit 1
+  fi
+done
+had_chronicle=0
+[ ! -d "$target/.prokron" ] || had_chronicle=1
+for file in README TASKS TASK_GRAPH DECISIONS STATE INTENT JOURNAL; do
+  copy_new "$source_dir/templates/.prokron/$file.md" "$target/.prokron/$file.md"
+done
+# Differences in project records are expected, not an upgrade warning.
+retained=0
+cmp -s "$source_dir/templates/.prokron/README.md" "$target/.prokron/README.md" || retained=1
 
 for command in init work decide checkpoint resume; do
   copy_new "$source_dir/commands/prokron-$command.md" \
@@ -98,6 +111,8 @@ if [ ! -f "$target/AGENTS.md" ]; then
 elif ! grep -Fq '<!-- project-prokron:start -->' "$target/AGENTS.md"; then
   printf '\n' >> "$target/AGENTS.md"
   cat "$source_dir/AGENTS.md" >> "$target/AGENTS.md"
+else
+  retained=1
 fi
 
 if [ ! -f "$target/CLAUDE.md" ]; then
@@ -107,6 +122,17 @@ elif ! grep -Fxq '@AGENTS.md' "$target/CLAUDE.md"; then
 fi
 
 printf 'Prokron installed in %s\n\n' "$target"
+if [ "$retained" -eq 1 ]; then
+  printf 'Existing guidance was preserved; reinstall does not upgrade it.\n'
+  printf 'Merge updates using README.md in the Prokron source (Updating an installation).\n\n'
+fi
+if [ "$had_chronicle" -eq 1 ]; then
+  printf 'Existing chronicle preserved. Resume in your agent chat:\n'
+  printf '  Codex:       $prokron resume\n'
+  printf '  Claude Code / OpenCode: /prokron-resume\n'
+  printf '  Other:       Read AGENTS.md, then follow commands/prokron-resume.md.\n'
+  exit 0
+fi
 printf 'Start in your agent chat:\n'
 printf '  Codex:       $prokron init %s\n' "$mode"
 printf '  Claude Code: /prokron-init %s\n' "$mode"

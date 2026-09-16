@@ -58,6 +58,9 @@ before long-running work, and before ending. Do not wait until the last message.
 
 ## Entry modes
 
+These modes initialize a fresh chronicle. If records already exist, preserve
+them and resume; neither mode resets history.
+
 - **New repository:** derive initial tasks and the task graph from the product
   specification with the developer. Record material decisions as ADRs.
 - **Existing repository:** start with an empty chronicle and record from the

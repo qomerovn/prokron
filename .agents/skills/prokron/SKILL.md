@@ -7,8 +7,9 @@ description: Maintain or resume a repository's Prokron project chronicle. Use fo
 
 Read `.prokron/README.md`. Interpret the first argument as `init`, `work`,
 `decide`, `checkpoint`, or `resume`, then follow the matching
-`commands/prokron-<argument>.md` workflow. For `work`, pass remaining arguments
-through as the requested task.
+`commands/prokron-<argument>.md` workflow. Pass remaining arguments through:
+`init` receives the entry mode, `work` the requested task, and `decide` the
+decision details. Repeated `init` preserves populated records and resumes work.
 
 Maintain the chronicle without waiting for an explicit Prokron request. Create
 or claim every new task before implementation and append an ADR as soon as a

@@ -1,3 +1,3 @@
 # Intent
 
-No intent in flight.
+No active intent.

@@ -199,3 +199,13 @@
 - Acceptance: Installed agent rules require immediate task and ADR capture without an explicit Prokron command and require a resumable checkpoint before any known or estimated agent, context, time, or quota cutoff.
 - Evidence: Local installer checks and the exact published private-GitHub install confirm that fresh repositories receive automatic pre-implementation task capture, immediate material-decision ADR capture, and early checkpoint rules for known or estimated context, token, time, session, rate, and quota limits.
 - Governed by: ADR-008
+
+## T-READINESS-01: Close workflow readiness gaps
+- Status: DONE
+- Validation: SYNTHETIC
+- Dependencies: T-CONTINUITY-01
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: Reinstall and init preserve project history; upgrades are explicit; command arguments reach workflows; documentation describes installation and the actual limits of automatic recording; regression checks cover preservation and incomplete installs.
+- Evidence: `sh tests/install.sh` passes both fresh modes, byte-for-byte record and custom-instruction preservation on reinstall, incomplete installation repair, decision argument delivery, linked-path rejection, and invalid input. Shell syntax, whitespace, and legal-file preservation checks pass. Repeat init protection is an agent instruction; real-session compliance and limit handling remain unverified, with a pilot procedure in docs/SPEC.md.
+- Governed by: ADR-008, ADR-009, ADR-010, ADR-011

@@ -3,7 +3,7 @@
 Kept in sync with `TASKS.md` by the working agent.
 
 ## Summary
-- DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06, T-V011-01, T-V011-02, T-V02-01, T-V02-02, T-V02-03, T-V02-04, T-HARNESS-01, T-HARNESS-02, T-WORKFLOW-01, T-DOCS-01, T-INSTALL-01, T-HOSTS-01, T-CLEANUP-01, T-CONTINUITY-01
+- DONE: T-V01-01, T-V01-02, T-V01-03, T-V01-04, T-V01-05, T-V01-06, T-V011-01, T-V011-02, T-V02-01, T-V02-02, T-V02-03, T-V02-04, T-HARNESS-01, T-HARNESS-02, T-WORKFLOW-01, T-DOCS-01, T-INSTALL-01, T-HOSTS-01, T-CLEANUP-01, T-CONTINUITY-01, T-READINESS-01
 - WIP: none
 - TODO: none
 - BLOCKED: none
@@ -89,5 +89,9 @@ Kept in sync with `TASKS.md` by the working agent.
   - eligible: no
 - T-CONTINUITY-01 [DONE] Make task, decision, and limit capture automatic
   - depends on: T-CLEANUP-01
+  - unlocks: T-READINESS-01
+  - eligible: no
+- T-READINESS-01 [DONE] Close workflow readiness gaps
+  - depends on: T-CONTINUITY-01
   - unlocks: none
   - eligible: no

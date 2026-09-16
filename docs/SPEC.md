@@ -67,6 +67,10 @@ an existing chronicle and project instructions, and prints the matching command
 to start in the agent chat. The bootstrap is installation tooling, not a
 project runtime.
 
+Repeated initialization preserves populated records and resumes. Reinstallation
+restores missing files, preserves existing guidance, and points to the manual
+merge instructions for upgrades; it never resets project history.
+
 ## 4. Working lifecycle
 
 ### 4.1 Resume
@@ -136,6 +140,10 @@ Without a host signal, the agent checkpoints after meaningful milestones,
 before long-running work, and before ending so an abrupt cutoff loses little
 project state.
 
+This is an instruction-based contract, not a quota monitor. A host must expose
+a warning early enough for the agent to write. Sudden termination can lose
+changes since the last checkpoint; installation tests cannot prove agent compliance.
+
 ## 6. Commands
 
 The portable workflows are:
@@ -184,3 +192,25 @@ outside this specification.
 5. A host limit or session-ending signal triggers a checkpoint; without a
    signal, milestone checkpoints preserve continuity.
 6. A human reading the same files reaches the same project-level understanding.
+
+### Handoff pilot
+
+Run in a disposable project with the host and model you intend to use:
+
+1. Install in `new` mode and supply a small specification; check that the first
+   tasks and dependencies reflect it. Separately install in `existing` mode;
+   verify it creates no invented history.
+2. Make an ordinary work request without a Prokron command. Check that a task
+   and single intent appear before implementation, with the graph kept in sync.
+3. Make a material choice, then change it. Check that both ADRs remain and the
+   newer one supersedes the earlier one, without requiring `/prokron-decide`.
+4. Pause partway through a task. Check state, intent, and journal for the exact
+   stopping point and next action. Try an exposed limit warning if available;
+   label any simulated warning as simulated, not proof of quota detection.
+5. Start a fresh agent session without the previous chat. Ask it to resume and
+   explain the project goal, active task, governing decisions, and next action
+   before reading code. Compare with the saved handoff.
+6. Run init again; check that tasks, ADRs, and journal history remain intact.
+
+Record host/model, date, observed results, and any gaps. Repeat for each host
+you claim to have verified. This pilot is not covered by `tests/install.sh`.

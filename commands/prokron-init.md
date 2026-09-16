@@ -3,6 +3,12 @@
 Create `.prokron/` with `README.md`, `TASKS.md`, `TASK_GRAPH.md`,
 `DECISIONS.md`, `STATE.md`, `INTENT.md`, and `JOURNAL.md` if absent.
 
+If the chronicle already contains tasks, decisions, intent, or journal entries,
+preserve them all and follow `commands/prokron-resume.md`. Neither `new` nor
+`existing` resets a chronicle. Add only missing files; never replace populated
+records with empty templates. The entry modes below apply only to a fresh,
+empty chronicle.
+
 For a new repository, read the product specification, work with the developer on
 material ambiguity, then create the initial tasks and dependency graph. Record
 the initial product choices as ADRs.

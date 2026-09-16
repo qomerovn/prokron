@@ -119,3 +119,14 @@
 - Affects: T-HOSTS-01
 - Context: GLM, MiniMax, Mistral, Grok, and similar names identify models or providers, while repository instructions and slash commands are loaded by the agent host running them.
 - Decision: Keep Prokron model-neutral. Install `AGENTS.md` and portable command prompts for every agent, and add thin host-native adapters only where a host requires them. Support OpenCode explicitly because it loads `AGENTS.md`, provides project commands, and can run multiple model providers.
+
+## ADR-011: Preserve installed guidance and make upgrades explicit
+- Date: 2026-09-16
+- Status: ACCEPTED
+- Authority: implementation choice under the product owner's readiness-fix request
+- Supersedes: none
+- Amends: ADR-009
+- Affects: T-READINESS-01
+- Context: Silent reinstall skips leave old guidance in place; automatic replacement could erase local customizations or project history.
+- Decision: Restore missing files, preserve existing ones, print a manual-upgrade reminder, and document the files to merge. Repeated initialization resumes a populated chronicle.
+- Consequences: Upgrades require review of local customizations. No version tracker or merge engine is added. Agent compliance and exposed-limit handling require a separate real-session pilot; installer checks prove only delivery and preservation.

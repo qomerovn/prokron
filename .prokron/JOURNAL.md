@@ -263,3 +263,12 @@
 - Learned: Continuity rules must fire on work events and agent limits, independent of whether the developer invokes a Prokron command.
 - Left mid-air: Nothing.
 - Next: Let the installed agent maintain the chronicle during normal work; use manual commands only when an explicit workflow is useful.
+
+## 2026-09-16 — readiness fixes and evidence boundaries
+- Task: T-READINESS-01
+- Owner: codex/primary
+- Did: Protected populated chronicles from repeat init, restored missing install files, documented manual upgrades, forwarded decision arguments, and documented offline/public installation plus a real-agent handoff pilot.
+- Validation: Installer regressions pass for fresh modes, all-record and custom-instruction preservation, incomplete installs, argument delivery, symlink rejection, and invalid input. Shell syntax, Git whitespace, and unchanged legal files pass.
+- Learned: The previous “automatic continuity guarantees” entry proves delivery of instructions, not guaranteed agent compliance or hidden quota detection. Real limit handling and fresh-session behavior remain unverified; the pilot must record observed host/model behavior.
+- Left mid-air: Implementation and local checks are complete; commit and publication are next. No real-agent pilot was run.
+- Next: Publish the readiness fixes, then use the handoff pilot in a target project before claiming verified cross-session continuity.
