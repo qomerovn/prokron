@@ -2,13 +2,18 @@
 
 ## 1. Purpose
 
-Prokron is a working agreement for developers and coding agents. It keeps a
-project understandable across people, agents, and sessions without making a
-newcomer read implementation code first.
+Prokron is short for Project Chronicle. It is a working agreement that gives
+people and AI a common language for understanding a project: why it exists,
+the historical decisions that shaped it, its present state, and its future work.
+A newcomer should be able to understand that story before reading implementation
+code.
 
 The task graph answers **what can happen next**. Decision lineage answers **why
 the project has its current shape**. Together they form the spine of the project
 chronicle.
+
+The same record supports discussion, advice, review, and continuity among
+people and agents. Session handoff is one use of this shared understanding.
 
 Prokron consists of Markdown records, agent instructions, and reusable command
 prompts. It requires no application runtime.
@@ -211,6 +216,11 @@ Run in a disposable project with the host and model you intend to use:
    explain the project goal, active task, governing decisions, and next action
    before reading code. Compare with the saved handoff.
 6. Run init again; check that tasks, ADRs, and journal history remain intact.
+7. Ask a person who did not do the work to read the same chronicle and explain
+   the project's purpose, a changed decision and its reason, current state,
+   and next priority. Compare their account with the agent's; record gaps or
+   disagreements for clarification. Only the participating human can mark this
+   check `HUMAN_VERIFIED`.
 
 Record host/model, date, observed results, and any gaps. Repeat for each host
 you claim to have verified. This pilot is not covered by `tests/install.sh`.

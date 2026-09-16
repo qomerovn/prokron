@@ -130,3 +130,14 @@
 - Context: Silent reinstall skips leave old guidance in place; automatic replacement could erase local customizations or project history.
 - Decision: Restore missing files, preserve existing ones, print a manual-upgrade reminder, and document the files to merge. Repeated initialization resumes a populated chronicle.
 - Consequences: Upgrades require review of local customizations. No version tracker or merge engine is added. Agent compliance and exposed-limit handling require a separate real-session pilot; installer checks prove only delivery and preservation.
+
+## ADR-012: Lead with shared understanding across people and AI
+- Date: 2026-09-16
+- Status: ACCEPTED
+- Authority: product owner clarification
+- Supersedes: none
+- Amends: ADR-008
+- Affects: T-DOCS-03
+- Context: The README emphasized AI session handoffs and obscured the wider purpose of Prokron, an abbreviation of Project Chronicle.
+- Decision: Present the chronicle as a common language for people and AI to understand why a project exists, the decisions that shaped it, its present state, and what comes next. Human collaboration, onboarding, advice, and continuity all use the same record.
+- Consequences: Documentation and graphics lead with shared project understanding. Session handoff remains a supporting use case; the six-record workflow, entry modes, and automation limits remain unchanged.

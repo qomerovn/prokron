@@ -281,3 +281,12 @@
 - Learned: A concrete handoff example explains the value more clearly than a file inventory alone. The example is labeled illustrative and makes no new reliability claim.
 - Left mid-air: Documentation is complete and ready to publish; the real-agent pilot remains pending.
 - Next: Commit and push the documentation, then use the handoff pilot in a target project.
+
+## 2026-09-16 — shared understanding as the product story
+- Task: T-DOCS-03
+- Owner: codex/primary
+- Did: Recorded the owner's clarification in ADR-012; rewrote the README, diagram, banner, specification purpose, and chronicle guide around Project Chronicle as a common language for people and AI. Replaced the session-only example with a project's historical change of direction and added a human comprehension step to the pilot.
+- Validation: All 15 local links/anchors and SVG XML pass. The new banner was rendered in an isolated browser and visually inspected; whitespace checks pass and legal files are unchanged.
+- Learned: Shared understanding of purpose, history, current state, and future work is the core benefit. Handoffs between people and agents are one use of that record.
+- Left mid-air: Documentation is complete and ready to publish. Human comprehension and real-session agent behavior still need the pilot.
+- Next: Publish the revised documentation and graphic, then compare a person's and an agent's understanding in a target project.

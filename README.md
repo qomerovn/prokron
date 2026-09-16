@@ -1,35 +1,48 @@
 <p align="center">
-  <img src="docs/assets/prokron.svg" alt="Prokron: Pick up where the last session stopped. Work, record tasks and decisions, then resume with the next agent." width="1200">
+  <img src="docs/assets/prokron.svg" alt="Prokron means Project Chronicle: a common language for people and AI. Shared purpose, historical decisions, current state, and future work connect everyone to the same project story." width="1200">
 </p>
 
 # Prokron
 
-**Project memory for people and coding agents.**
+**One project. Shared understanding.**
 
-A session ends. You switch models. A new developer joins. The next person asks:
-*What are we building, why did we choose this approach, and where do I start?*
+**Prokron is short for Project Chronicle.** It gives people and AI a common
+language for understanding a project: why it exists, which decisions shaped it,
+where it stands, and where it is going.
 
-Prokron keeps those answers in your repository. The working agent maintains a
-small Markdown chronicle: **the task graph, the decisions behind it, and the
-exact place to continue.** A newcomer can understand the project's direction
-before reading a single line of implementation code.
+Every project has a story behind its code. An idea became a plan. A constraint
+changed a decision. A promising approach was tried, then replaced. Those reasons
+matter to everyone who builds, reviews, advises on, or inherits the project.
+
+Prokron keeps that story in a living Markdown chronicle inside your repository.
+**The task graph shows where the work is going. The decision history explains
+how it got here.** People and AI can read the same record, question the same
+assumptions, and work from the same understanding—before reading implementation
+code.
 
 [Get started](#get-started) · [See the workflow](#how-it-works) ·
 [Commands](#commands) · [Specification](docs/SPEC.md)
 
-## Give the next session a starting point
+## Make the project understandable
 
-Code shows what exists. A useful handoff also explains what matters, what was
-ruled out, what is unfinished, and what should happen next.
+A founder explaining a change in direction. A teammate joining months later.
+An AI agent proposing the next step. Each needs context that survives the
+conversation where it first appeared.
 
-- **Know what to work on.** Tasks carry acceptance criteria and evidence; the
-  graph shows dependencies, ready work, and blockers.
-- **Keep the reasoning.** Architecture Decision Records (ADRs) explain material
-  choices. When a choice changes, a new ADR supersedes the old one. Both remain.
-- **Continue unfinished work.** One active intent captures the current task,
-  stopping point, and next action.
-- **Bring another agent—or another person.** The same readable files travel
-  with the project, across sessions and model changes.
+| The question | What the chronicle makes visible |
+|---|---|
+| **Why does this project exist?** | Its purpose, intended outcome, and the work chosen to serve it. |
+| **Why did we take this path?** | Decisions, constraints, alternatives, and the reasons earlier choices changed. |
+| **Where are we now?** | Completed work and its evidence, open questions, blockers, and the active task. |
+| **What should happen next?** | A task graph with dependencies, acceptance criteria, and an explicit next action. |
+
+The benefit is shared context: a person can review the reasoning, an AI can
+use it to propose work, and the team can challenge either against the same
+record. When understanding changes, the chronicle changes with it.
+
+Decisions are recorded as Architecture Decision Records (ADRs). A new decision
+can supersede an earlier one, but the earlier reasoning stays visible. The
+project's evolution remains explainable.
 
 Six Markdown records, agent instructions, and a small installer. Everything
 lives in your repo, where you can read it, review it, and commit it to Git.
@@ -39,41 +52,52 @@ There is no Prokron service to run or model API to configure.
 
 ```mermaid
 flowchart TD
-    N["New repo: product spec + developer"] --> P["Create tasks and dependencies"]
-    E["Existing repo: start an empty chronicle"] --> W["Work with your agent"]
-    P --> W
-    W --> C["Record tasks, decisions, and progress"]
-    C --> H["Checkpoint the exact stopping point"]
-    H --> R["Next session: read the chronicle and resume"]
-    R --> W
-    classDef entry fill:#192b38,color:#f3f6f7,stroke:#7b919f
-    classDef memory fill:#203a36,color:#f3f6f7,stroke:#8be0bd
-    classDef handoff fill:#382e24,color:#f3f6f7,stroke:#efb373
-    class N,E,P,W entry
-    class C memory
-    class H,R handoff
+    P["People: build, review, advise"] <--> C["PROJECT CHRONICLE: shared understanding"]
+    A["AI agents: reason, record, develop"] <--> C
+    C --- H["PAST: purpose and decision history"]
+    C --- S["PRESENT: state, evidence, and active work"]
+    C --- N["FUTURE: task graph and next steps"]
+    classDef participants fill:#192b38,color:#f3f6f7,stroke:#7b919f
+    classDef chronicle fill:#203a36,color:#f3f6f7,stroke:#8be0bd
+    classDef perspective fill:#382e24,color:#f3f6f7,stroke:#efb373
+    class P,A participants
+    class C chronicle
+    class H,S,N perspective
 ```
 
-**Two ways in. One ongoing workflow.** A new project begins with the
-specification and the developer. An existing project begins empty and records
-work from that session onward, without inventing a past. A populated chronicle
-is preserved when you initialize again.
+People set direction, discuss tradeoffs, and review outcomes. The working agent
+is instructed to record new tasks, material decisions, and progress as the work
+happens. Both can consult and maintain the same files. Human-to-human,
+human-to-AI, and AI-to-AI handoffs draw on that shared history.
 
-### What the next agent inherits
+**Two ways to begin:**
 
-Imagine pausing halfway through a CSV export feature. A handoff might contain:
+- **New project:** work from the product specification with the developer to
+  create the initial tasks, graph, decisions, and state.
+- **Existing project:** start with an empty chronicle and record from now on.
+  Earlier history is reconstructed only if explicitly requested; Prokron does
+  not invent it.
+
+A populated chronicle is preserved when you initialize again.
+
+### A project story everyone can follow
+
+Imagine a team building an expense tool for freelancers. Months into the work,
+a new teammate or AI advisor asks why bank synchronization is absent:
 
 | Question | Recorded answer |
 |---|---|
-| What is the goal? | Let users export the transactions they are viewing. |
-| What is active? | `T-014`: export filtered transactions; implementation complete, validation pending. |
-| What depends on it? | `T-015`: export from saved views, blocked by `T-014`. |
-| Why this behavior? | `ADR-006`: export only the filtered result; supersedes `ADR-003`, which proposed exporting all transactions. |
-| Where did work stop? | Export is implemented; the empty-result case still needs checking. |
-| What happens next? | Verify that an empty result produces a header-only CSV, then record the evidence. |
+| Why are we building this? | Help freelancers prepare expense records without maintaining a spreadsheet. |
+| What did we originally choose? | `ADR-002` proposed bank synchronization to reduce manual entry. |
+| Why did the direction change? | `ADR-007` superseded it: launch with CSV import because supported banks did not cover the first users. Revisit when coverage improves. |
+| Where is the project now? | Import is complete; duplicate detection is in progress; validation evidence is linked from the tasks. |
+| What comes next? | Finish duplicate detection before starting monthly summaries. The task graph records that dependency. |
 
-This is an illustrative example, not a test result. The point is a concrete
-place to resume: the next agent knows which code to inspect and why.
+The teammate can explain the tradeoff. The advisor can question whether the
+constraint still holds. The coding agent can choose work consistent with the
+current decision. Everyone has the context to move the discussion forward.
+
+*Illustrative example; these are not claims about a deployed project.*
 
 ## Get started
 
@@ -128,20 +152,24 @@ Ask for the work you want done. The installed rules instruct the agent to
 create tasks before implementation, append decisions when they are made, and
 keep progress current. You do not need a slash command for every update.
 
+Use the chronicle in discussions and reviews, too: ask why a decision was made,
+what changed, or which work serves the current goal. Record material changes
+so the next person or agent can follow the reasoning.
+
 At the next session, use `/prokron-resume` or `$prokron resume` to continue from
 the saved chronicle.
 
 ## What lives in the chronicle
 
 The **task graph** and **decision history** are the core. Four supporting
-records connect the plan to what is actually happening.
+records connect purpose and history to what is actually happening.
 
 | File in `.prokron/` | What it preserves |
 |---|---|
 | **`TASK_GRAPH.md`** | The path forward: dependencies, ready work, and blockers. |
 | **`DECISIONS.md`** | The reasoning: append-only ADRs and their supersession chain. |
 | `TASKS.md` | The work: owners, acceptance criteria, status, and evidence. |
-| `STATE.md` | The present: project position, risks, and next steps. |
+| `STATE.md` | The present: project purpose, position, risks, and next steps. |
 | `INTENT.md` | The focus: zero or one active task and its exact execution point. |
 | `JOURNAL.md` | The diary: progress, validation, unfinished work, and handoffs. |
 
@@ -217,8 +245,8 @@ over project history.
 
 Try the [handoff pilot](docs/SPEC.md#handoff-pilot) in a disposable project.
 When reporting a gap, include the host/model, the request, what was recorded,
-and what the next session could not recover. Remove private project details
-before sharing.
+and what a person or agent could not understand from it. Remove private project
+details before sharing.
 
 Changes should keep Prokron small and readable. The
 [specification](docs/SPEC.md) defines the working agreement and scope.

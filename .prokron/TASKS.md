@@ -219,3 +219,13 @@
 - Acceptance: README explains the value through concrete examples and repository graphics, keeps installation usable and claims accurate, and preserves legal files.
 - Evidence: Rewritten README includes a repository-owned SVG banner, Mermaid workflow, illustrative handoff, setup, commands, upgrade guidance, and accurate continuity limits. All 15 local links/anchors and SVG XML pass validation; the banner was rendered in an isolated browser and visually inspected. Git whitespace and legal-file preservation checks pass.
 - Governed by: ADR-008, ADR-010, ADR-011
+
+## T-DOCS-03: Position Prokron as shared project understanding
+- Status: DONE
+- Validation: AI_REVIEWED
+- Dependencies: T-DOCS-02
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: README, specification purpose, and graphic explain Project Chronicle as a common language for people and AI, with purpose, historical decisions, current state, and future work; session handoff is one use of that record.
+- Evidence: README, SVG banner, Mermaid diagram, specification purpose, and installed guide now explain shared project understanding across people and AI. The illustrative example traces a changed decision; the pilot includes a human comprehension check. All 15 local links/anchors, SVG XML, whitespace, and legal-file preservation checks pass. The banner was rendered in an isolated browser and visually inspected.
+- Governed by: ADR-008, ADR-012

@@ -4,6 +4,10 @@ This directory is shared project memory for people and agents. The product
 specification describes what was intended; this chronicle records what is true
 now. It should explain the project before anyone reads implementation code.
 
+Prokron means Project Chronicle: a common language for understanding purpose,
+historical decisions, current state, and future work. Use it for discussion,
+review, advice, and continuity between people as well as agents.
+
 ## Read order
 
 1. `STATE.md` for the current position.
