@@ -6,7 +6,7 @@ Maintained with the project chronicle by the working agent.
 - Project: Prokron
 - Purpose: A Markdown task graph and decision chronicle that lets people and agents continue a project before reading its code.
 - Entry modes: Derive initial tasks from a new project's specification, or begin empty in an existing project and record ongoing work.
-- Tasks: 21
+- Tasks: 22
 - Active intents: 0
 
 ## In flight

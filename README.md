@@ -1,45 +1,103 @@
+<p align="center">
+  <img src="docs/assets/prokron.svg" alt="Prokron: Pick up where the last session stopped. Work, record tasks and decisions, then resume with the next agent." width="1200">
+</p>
+
 # Prokron
 
 **Project memory for people and coding agents.**
 
-Prokron keeps project context in a small Markdown chronicle. A new
-person or agent can see what matters, why it matters, and what to do next before
-reading implementation code.
+A session ends. You switch models. A new developer joins. The next person asks:
+*What are we building, why did we choose this approach, and where do I start?*
 
-`TASK_GRAPH.md` shows the path forward. `DECISIONS.md` preserves the reasoning
-that shaped it. Four supporting records make each handoff complete:
+Prokron keeps those answers in your repository. The working agent maintains a
+small Markdown chronicle: **the task graph, the decisions behind it, and the
+exact place to continue.** A newcomer can understand the project's direction
+before reading a single line of implementation code.
 
-| Record | Answers |
+[Get started](#get-started) · [See the workflow](#how-it-works) ·
+[Commands](#commands) · [Specification](docs/SPEC.md)
+
+## Give the next session a starting point
+
+Code shows what exists. A useful handoff also explains what matters, what was
+ruled out, what is unfinished, and what should happen next.
+
+- **Know what to work on.** Tasks carry acceptance criteria and evidence; the
+  graph shows dependencies, ready work, and blockers.
+- **Keep the reasoning.** Architecture Decision Records (ADRs) explain material
+  choices. When a choice changes, a new ADR supersedes the old one. Both remain.
+- **Continue unfinished work.** One active intent captures the current task,
+  stopping point, and next action.
+- **Bring another agent—or another person.** The same readable files travel
+  with the project, across sessions and model changes.
+
+Six Markdown records, agent instructions, and a small installer. Everything
+lives in your repo, where you can read it, review it, and commit it to Git.
+There is no Prokron service to run or model API to configure.
+
+## How it works
+
+```mermaid
+flowchart TD
+    N["New repo: product spec + developer"] --> P["Create tasks and dependencies"]
+    E["Existing repo: start an empty chronicle"] --> W["Work with your agent"]
+    P --> W
+    W --> C["Record tasks, decisions, and progress"]
+    C --> H["Checkpoint the exact stopping point"]
+    H --> R["Next session: read the chronicle and resume"]
+    R --> W
+    classDef entry fill:#192b38,color:#f3f6f7,stroke:#7b919f
+    classDef memory fill:#203a36,color:#f3f6f7,stroke:#8be0bd
+    classDef handoff fill:#382e24,color:#f3f6f7,stroke:#efb373
+    class N,E,P,W entry
+    class C memory
+    class H,R handoff
+```
+
+**Two ways in. One ongoing workflow.** A new project begins with the
+specification and the developer. An existing project begins empty and records
+work from that session onward, without inventing a past. A populated chronicle
+is preserved when you initialize again.
+
+### What the next agent inherits
+
+Imagine pausing halfway through a CSV export feature. A handoff might contain:
+
+| Question | Recorded answer |
 |---|---|
-| `TASKS.md` | What work exists, and when is it done? |
-| `TASK_GRAPH.md` | What is in flight, ready, or blocked? |
-| `DECISIONS.md` | Why does the project work this way? |
-| `STATE.md` | Where is the project now? |
-| `INTENT.md` | What single task is active? |
-| `JOURNAL.md` | What happened, and what happens next? |
+| What is the goal? | Let users export the transactions they are viewing. |
+| What is active? | `T-014`: export filtered transactions; implementation complete, validation pending. |
+| What depends on it? | `T-015`: export from saved views, blocked by `T-014`. |
+| Why this behavior? | `ADR-006`: export only the filtered result; supersedes `ADR-003`, which proposed exporting all transactions. |
+| Where did work stop? | Export is implemented; the empty-result case still needs checking. |
+| What happens next? | Verify that an empty result produces a header-only CSV, then record the evidence. |
 
-That is the product: six Markdown files plus instructions for the agent already
-doing the work. There is no runtime or service to operate.
+This is an illustrative example, not a test result. The point is a concrete
+place to resume: the next agent knows which code to inspect and why.
 
-## Install with one command
+## Get started
 
-Run one of these from the root of the project that will use Prokron:
+### 1. Install in your project
+
+From the root of an **existing project**, run:
 
 ```sh
-# New repository
-gh api -H 'Accept: application/vnd.github.raw+json' 'repos/qomerovn/prokron/contents/install.sh?ref=main' | sh -s -- new
-
-# Existing repository
 gh api -H 'Accept: application/vnd.github.raw+json' 'repos/qomerovn/prokron/contents/install.sh?ref=main' | sh -s -- existing
 ```
 
-The private repository requires an authenticated [GitHub CLI](https://cli.github.com/).
-The installer adds the chronicle, workflows, generic agent instructions, and
-Codex, Claude Code, and OpenCode adapters. It preserves existing `.prokron/`
-records and project instructions, restores missing files, then prints the
-agent-chat command to initialize a fresh chronicle or resume an existing one.
+For a **new project**, replace `existing` with `new` and bring your product spec.
+The repository is currently private, so this command requires an authenticated
+[GitHub CLI](https://cli.github.com/) with repository access.
 
-From a downloaded or cloned Prokron checkout, installation also works offline:
+The installer adds `.prokron/`, shared instructions, portable workflows, and
+command files for Codex, Claude Code, and OpenCode. It preserves existing
+records and custom instructions, restores missing files, and prints what to run
+in your agent chat.
+
+<details>
+<summary>Install from a local checkout or after public release</summary>
+
+From a downloaded or cloned Prokron checkout, installation works offline:
 
 ```sh
 sh ./install.sh existing /path/to/your/project
@@ -51,88 +109,119 @@ Once this repository is public, anonymous installation will be available with:
 curl -fsSL https://raw.githubusercontent.com/qomerovn/prokron/main/install.sh | sh -s -- existing
 ```
 
-Use `new` instead of `existing` for a new project. Anonymous delivery cannot be
-verified while the repository is private.
+Use `new` for a new project. Anonymous delivery remains unverified while the
+repository is private.
 
-### Updating an installation
+</details>
 
-Reinstalling adds missing files; it **does not upgrade existing guidance**. It
-prints a reminder when guidance is retained. From a current Prokron checkout,
-review and merge changes to `commands/`, `.claude/commands/`,
-`.opencode/commands/`, `.agents/skills/prokron/SKILL.md`, and
-`templates/.prokron/README.md` (installed as `.prokron/README.md`). Merge the
-Prokron block in `AGENTS.md`, keeping surrounding project rules.
+### 2. Start in your agent chat
 
-Keep customizations and all six chronicle records. Do not copy empty templates
-over project history. Repeated initialization also preserves history and resumes.
+| Agent host | Existing project | New project |
+|---|---|---|
+| Codex | `$prokron init existing` | `$prokron init new` |
+| Claude Code / OpenCode | `/prokron-init existing` | `/prokron-init new` |
+| Other capable coding agents | Read `AGENTS.md`, then follow `commands/prokron-init.md` in existing mode. | Same instruction, in new mode. |
 
-## Models and agent hosts
+### 3. Work normally
 
-GLM, MiniMax, Mistral, and Grok are models or model providers. Prokron configures
-the **agent host** running the model, so its project memory stays the same when
-the model changes.
+Ask for the work you want done. The installed rules instruct the agent to
+create tasks before implementation, append decisions when they are made, and
+keep progress current. You do not need a slash command for every update.
 
-- **OpenCode:** the installer adds `.opencode/commands/` and `AGENTS.md`.
-  OpenCode supports multiple providers through `/connect` and `/models`; after
-  selecting any model, run `/prokron-init new` or `/prokron-init existing`.
-- **Any host that loads [`AGENTS.md`](https://agents.md/):** the Prokron rules load with the project.
-  Ask the agent to follow the relevant file in `commands/`.
-- **Any other capable coding agent:** start with: `Read AGENTS.md, then follow
-  commands/prokron-init.md in existing mode.` Change `existing` to `new` when
-  starting from a product specification.
+At the next session, use `/prokron-resume` or `$prokron resume` to continue from
+the saved chronicle.
 
-Prokron does not store provider credentials or pin a model. See OpenCode's
-[provider setup](https://opencode.ai/docs/providers),
-[project instructions](https://opencode.ai/docs/rules/), and
-[custom commands](https://opencode.ai/docs/commands/).
+## What lives in the chronicle
 
-## Start in one of two modes
+The **task graph** and **decision history** are the core. Four supporting
+records connect the plan to what is actually happening.
 
-### New repository
+| File in `.prokron/` | What it preserves |
+|---|---|
+| **`TASK_GRAPH.md`** | The path forward: dependencies, ready work, and blockers. |
+| **`DECISIONS.md`** | The reasoning: append-only ADRs and their supersession chain. |
+| `TASKS.md` | The work: owners, acceptance criteria, status, and evidence. |
+| `STATE.md` | The present: project position, risks, and next steps. |
+| `INTENT.md` | The focus: zero or one active task and its exact execution point. |
+| `JOURNAL.md` | The diary: progress, validation, unfinished work, and handoffs. |
 
-Run `/prokron-init new` in Claude Code or OpenCode, or `$prokron init new` in
-Codex. The agent works with the developer to turn the product specification into
-the first tasks, dependency graph, decisions, and project state.
+See the [chronicle guide](.prokron/README.md) for the read order, or
+[Prokron's own task graph](.prokron/TASK_GRAPH.md) and
+[decision history](.prokron/DECISIONS.md) for a real example.
 
-### Existing repository
+## Commands
 
-Run `/prokron-init existing` in Claude Code or OpenCode, or `$prokron init
-existing` in Codex. The chronicle starts empty and records work from that
-session onward. It does not invent historical tasks or decisions from the
-repository.
-
-## Work with the chronicle
+Use these when you want to invoke a workflow explicitly.
 
 | Purpose | Claude Code / OpenCode | Codex |
 |---|---|---|
-| Start the chronicle | `/prokron-init [mode]` | `$prokron init [mode]` |
-| Start or continue one task | `/prokron-work [task]` | `$prokron work [task]` |
-| Record a decision | `/prokron-decide` | `$prokron decide` |
-| Prepare a handoff | `/prokron-checkpoint` | `$prokron checkpoint` |
-| Continue from project memory | `/prokron-resume` | `$prokron resume` |
+| Initialize | `/prokron-init [new\|existing]` | `$prokron init [new\|existing]` |
+| Start or continue a task | `/prokron-work [task]` | `$prokron work [task]` |
+| Record or supersede a decision | `/prokron-decide [decision]` | `$prokron decide [decision]` |
+| Save a handoff | `/prokron-checkpoint` | `$prokron checkpoint` |
+| Recover current work | `/prokron-resume` | `$prokron resume` |
 
-Installed rules instruct agents to maintain the chronicle automatically, without
-requiring slash commands. Every new work request becomes a
-task before implementation. Every material choice becomes an ADR as soon as it
-is made or acted on; changed decisions get a new ADR that supersedes the old
-one. `INTENT.md` always identifies the single active task and exact work point.
+All workflows also live in [`commands/`](commands) as portable Markdown prompts.
 
-The agent checkpoints before handoff, interruption, compaction, or any known or
-estimated context, token, time, session, rate, or quota limit. If the host does
-not expose a meter, it checkpoints after meaningful milestones, before
-long-running work, and before ending the session.
+## Use the model you prefer
 
-These are instructions the working agent must follow, not a background monitor.
-Prokron cannot detect hidden five-hour or seven-day quota counters or guarantee
-a final write after an abrupt cutoff. Milestone checkpoints limit how much work
-can be missing from the handoff.
+Prokron configures the **agent host** that reads files and does the work.
+GLM, MiniMax, Mistral, Grok, and other models use the same chronicle through a
+compatible host; provider setup and model selection stay with that host.
 
-Run `sh tests/install.sh` in this checkout to check installation and preservation.
-This does not test model compliance or real quota warnings. Use the
-[handoff pilot](docs/SPEC.md#handoff-pilot) to verify those workflows with your host.
+Codex receives a project skill. Claude Code and OpenCode receive project
+commands. Hosts that load [`AGENTS.md`](https://agents.md/) can follow the shared
+rules; for other capable agents, explicitly ask them to read it and follow the
+relevant file in `commands/`.
 
-Read the [specification](docs/SPEC.md) for the complete working agreement and
-the [chronicle guide](.prokron/README.md) for the read order.
+For OpenCode setup, see its [providers](https://opencode.ai/docs/providers),
+[instructions](https://opencode.ai/docs/rules/), and
+[custom commands](https://opencode.ai/docs/commands/) documentation.
+Behavior depends on the host and model following these instructions.
+
+## Checkpoint before context runs out
+
+The rules call for a checkpoint before handoff, compaction, session ending, or
+any known or estimated context, token, time, rate, or quota limit—including
+five-hour and seven-day windows. When the host exposes no meter, the fallback
+is to checkpoint after meaningful milestones and before long-running work.
+
+**Prokron is an instruction-based workflow.** It cannot read hidden quota
+counters or guarantee a final write after an abrupt cutoff. Frequent records
+give the next session a recent place to resume; the working agent must maintain
+them.
+
+Installation and preservation checks pass. Real-session agent compliance and
+quota-warning behavior still need a [handoff pilot](docs/SPEC.md#handoff-pilot)
+with your chosen host and model. Run the installer checks from this checkout:
+
+```sh
+sh tests/install.sh
+```
+
+## Updating an installation
+
+Reinstalling adds missing files; it **does not upgrade existing guidance**.
+It prints a reminder when guidance is retained. From a current Prokron checkout,
+review and merge changes to:
+
+- `commands/`, `.claude/commands/`, and `.opencode/commands/`;
+- `.agents/skills/prokron/SKILL.md`;
+- `templates/.prokron/README.md`, installed as `.prokron/README.md`;
+- the Prokron block in `AGENTS.md`, preserving surrounding project rules.
+
+Keep customizations and all six chronicle records. Never copy empty templates
+over project history.
+
+## Help improve the workflow
+
+Try the [handoff pilot](docs/SPEC.md#handoff-pilot) in a disposable project.
+When reporting a gap, include the host/model, the request, what was recorded,
+and what the next session could not recover. Remove private project details
+before sharing.
+
+Changes should keep Prokron small and readable. The
+[specification](docs/SPEC.md) defines the working agreement and scope.
 
 ## License
 

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc">
+  <title id="title">Prokron — Pick up where the last session stopped.</title>
+  <desc id="desc">A project chronicle carries tasks, decisions, and the next action from today's work into the next session. Six Markdown records, stored with your project.</desc>
+  <rect width="1200" height="480" rx="20" fill="#101d27"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <path d="M54 53h17v17H54z M79 53h17v17H79z M54 78h17v17H54z" fill="#8be0bd"/>
+    <path d="M79 78h17v17H79z" fill="#efb373"/>
+    <text x="114" y="86" fill="#f3f6f7" font-size="30" font-weight="700" letter-spacing="3">PROKRON</text>
+    <text x="1146" y="82" text-anchor="end" fill="#aebfc9" font-size="16" letter-spacing="2">PROJECT MEMORY / IN YOUR REPO</text>
+    <text x="54" y="164" fill="#f3f6f7" font-size="47" font-weight="700">Pick up where the</text>
+    <text x="54" y="220" fill="#8be0bd" font-size="47" font-weight="700">last session stopped.</text>
+    <text x="54" y="265" fill="#bdcbd3" font-size="21">The work. The reasoning. The exact next step.</text>
+    <path d="M360 362h59m-9-6 9 6-9 6 M780 362h59m-9-6 9 6-9 6" fill="none" stroke="#8be0bd" stroke-width="2"/>
+    <rect x="54" y="311" width="306" height="102" rx="10" fill="#192b38" stroke="#405764"/>
+    <rect x="420" y="311" width="360" height="102" rx="10" fill="#203a36" stroke="#8be0bd"/>
+    <rect x="840" y="311" width="306" height="102" rx="10" fill="#192b38" stroke="#405764"/>
+    <text x="77" y="343" fill="#aebfc9" font-size="13" letter-spacing="2">01 / WORK</text>
+    <text x="77" y="382" fill="#f3f6f7" font-size="23" font-weight="700">Build. Decide. Record.</text>
+    <text x="444" y="343" fill="#8be0bd" font-size="13" letter-spacing="2">02 / PROJECT CHRONICLE</text>
+    <text x="444" y="382" fill="#f3f6f7" font-size="23" font-weight="700">Tasks + decisions + handoff</text>
+    <text x="864" y="343" fill="#efb373" font-size="13" letter-spacing="2">03 / RESUME</text>
+    <text x="864" y="382" fill="#f3f6f7" font-size="23" font-weight="700">Next agent. Same story.</text>
+    <text x="54" y="449" fill="#aebfc9" font-size="15">Six Markdown records. Human-readable. Versioned with your project.</text>
+  </g>
+</svg>

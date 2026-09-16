@@ -209,3 +209,13 @@
 - Acceptance: Reinstall and init preserve project history; upgrades are explicit; command arguments reach workflows; documentation describes installation and the actual limits of automatic recording; regression checks cover preservation and incomplete installs.
 - Evidence: `sh tests/install.sh` passes both fresh modes, byte-for-byte record and custom-instruction preservation on reinstall, incomplete installation repair, decision argument delivery, linked-path rejection, and invalid input. Shell syntax, whitespace, and legal-file preservation checks pass. Repeat init protection is an agent instruction; real-session compliance and limit handling remain unverified, with a pilot procedure in docs/SPEC.md.
 - Governed by: ADR-008, ADR-009, ADR-010, ADR-011
+
+## T-DOCS-02: Make the GitHub introduction clear and compelling
+- Status: DONE
+- Validation: AI_REVIEWED
+- Dependencies: T-READINESS-01
+- Owner: codex/primary
+- Claimed: 2026-09-16
+- Acceptance: README explains the value through concrete examples and repository graphics, keeps installation usable and claims accurate, and preserves legal files.
+- Evidence: Rewritten README includes a repository-owned SVG banner, Mermaid workflow, illustrative handoff, setup, commands, upgrade guidance, and accurate continuity limits. All 15 local links/anchors and SVG XML pass validation; the banner was rendered in an isolated browser and visually inspected. Git whitespace and legal-file preservation checks pass.
+- Governed by: ADR-008, ADR-010, ADR-011

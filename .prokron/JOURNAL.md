@@ -272,3 +272,12 @@
 - Learned: The previous “automatic continuity guarantees” entry proves delivery of instructions, not guaranteed agent compliance or hidden quota detection. Real limit handling and fresh-session behavior remain unverified; the pilot must record observed host/model behavior.
 - Left mid-air: Implementation and local checks are complete; commit and publication are next. No real-agent pilot was run.
 - Next: Publish the readiness fixes, then use the handoff pilot in a target project before claiming verified cross-session continuity.
+
+## 2026-09-16 — GitHub introduction and graphics
+- Task: T-DOCS-02
+- Owner: codex/primary
+- Did: Rewrote the README around recovering work across sessions, added an SVG banner and Mermaid workflow, and illustrated a handoff with tasks, decision lineage, and the next action. Kept installation, manual upgrades, and continuity limits explicit.
+- Validation: All 15 local links/anchors and SVG XML pass; the full banner was rendered in an isolated browser and visually inspected. Git whitespace checks pass and legal files are unchanged. No runtime or dependency was added.
+- Learned: A concrete handoff example explains the value more clearly than a file inventory alone. The example is labeled illustrative and makes no new reliability claim.
+- Left mid-air: Documentation is complete and ready to publish; the real-agent pilot remains pending.
+- Next: Commit and push the documentation, then use the handoff pilot in a target project.
